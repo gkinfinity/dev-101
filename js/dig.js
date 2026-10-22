@@ -901,25 +901,24 @@
           }
           if (lastOut !== o.text) { setOut(o.text, o.fx === 'far' || o.fx === 'bedrock' ? 'warn' : ''); lastOut = o.text; }
         }
-        const main = S.prog.main;
-        condValue = main && ctx.taken ? ctx.taken[main.id] === 0 : null;
       } else {
         if (!(mouseDig || keyDig)) { V.holdTime = 0; holdKey = ''; }
         lastSteps = [];
-        if (hit && S.prog.main) {
-          const cond = S.prog.main.branches[0].cond;
-          if (!TT.programHasBlank(S.prog.body) && !TT.check(cond, V)) {
-            try { condValue = TT.evaluate(cond, V) === true; } catch (err) { condValue = null; }
-          }
-        }
       }
 
+      // Green or red follows what the student's code would do with this block if
+      // the button were held long enough; null while the code has blanks.
+      const canMine = hit ? wouldMine(V, 1e9) : null;
+      condValue = canMine;
+      // The bar only matters when the code makes mining take time.
+      const timed = !!canMine && !wouldMine(V, 0);
+
       // HUD
-      xh.className = 'xh' + (hit ? (condValue ? ' ok' : ' no') : '');
+      xh.className = 'xh' + (canMine == null ? '' : canMine ? ' ok' : ' no');
       const prog = V.digTime > 0 ? Math.min(1, V.holdTime / V.digTime) : (digging ? 1 : 0);
-      digBar.classList.toggle('on', !!digging && condValue);
+      digBar.classList.toggle('on', !!digging && timed);
       digFill.style.width = (prog * 100).toFixed(1) + '%';
-      pick.classList.toggle('swing', !!digging && !!condValue);
+      pick.classList.toggle('swing', !!digging && !!canMine);
 
       // particles
       dots = dots.filter(d => (d.life -= dt) > 0);
@@ -955,6 +954,16 @@
           if (html !== previewLines) { previewLines = html; traceEl.innerHTML = html; }
         }
       }
+    }
+
+    // Run the code on the side with a chosen holdTime: would it mine this block?
+    function wouldMine(V, hold) {
+      if (TT.programHasBlank(S.prog.body)) return null;
+      const vars = Object.assign({}, V, { holdTime: hold });
+      const ctx = {};
+      try { for (const st of TT.run(S.prog, vars, ctx)) { /* run it to the end */ } } catch (err) { return null; }
+      if (ctx.crashed) return null;
+      return (ctx.outputs || []).some(o => o.fx === 'mine');
     }
 
     function resize() {
@@ -1007,7 +1016,7 @@
         gl.uniformMatrix4fv(bp.u.uMVP, false, mvp);
         gl.uniform3f(bp.u.uAt, target.x, target.y, target.z);
         gl.uniform1f(bp.u.uProgress, progress);
-        gl.uniform3fv(bp.u.uColor, condValue ? [0.1, 1, 0.45] : [1, 0.25, 0.35]);
+        gl.uniform3fv(bp.u.uColor, condValue == null ? [0.9, 0.9, 0.9] : condValue ? [0.1, 1, 0.45] : [1, 0.25, 0.35]);
         gl.drawArrays(gl.TRIANGLES, 0, 36);
         gl.disableVertexAttribArray(bp.a.aPos);
         gl.disableVertexAttribArray(bp.a.aUV);
