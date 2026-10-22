@@ -332,17 +332,18 @@
       '</section>' +
       '</div>' +
       '<div class="col">' +
-      '<section class="panel p-code" id="code-panel"><div class="panel-head"><h2>Code</h2><ol class="steps" id="steps" aria-label="Steps"></ol></div>' +
+      '<section class="panel p-code" id="code-panel"><div class="panel-head"><h2 id="code-title">Code</h2>' +
+      '<button type="button" class="btn btn-ghost btn-small" id="to-questions" hidden>Questions</button>' +
+      '<ol class="steps" id="steps" aria-label="Steps"></ol></div>' +
+      '<div id="qbox" class="qbox"></div>' +
+      '<div id="codebox">' +
       '<div class="code-wrap" id="code"></div>' +
       '<div class="code-actions"><button type="button" class="btn btn-run" id="test-btn">✓ Test my code</button>' +
       '<button type="button" class="btn btn-ghost" id="undo-btn">↺ Clear this step</button></div>' +
-      '<ul class="tests" id="tests" hidden></ul></section>' +
+      '<ul class="tests" id="tests" hidden></ul></div></section>' +
       '<section class="panel p-trace"><div class="panel-head"><h2>Step by step</h2></div>' +
       '<ol class="trace live" id="trace"></ol></section>' +
       '</div></div>' +
-      (sc.questions ? '<section class="panel p-questions"><div class="panel-head"><h2>Questions</h2></div>' +
-        sc.questions.map((v, i) => '<label class="question"><span>' + (i + 1) + '. What do you think <span class="t-var">' + esc(v) + '</span> does?</span>' +
-          '<textarea rows="2" data-q="' + esc(v) + '"></textarea></label>').join('') + '</section>' : '') +
       '<section class="panel p-chal p-end"><div class="panel-head"><h2>Challenges</h2><span class="panel-sub" id="chal-count"></span></div><ol class="chal" id="chal"></ol></section>' +
       (ui.solo ? '' : '<nav class="pager">' + (ui.prev ? '<a class="btn btn-ghost" href="#/' + ui.prev.id + '">← ' + esc(ui.prev.title) + '</a>' : '<span></span>') +
       '<a class="btn btn-ghost" href="#/">All scenarios</a></nav>');
@@ -389,13 +390,37 @@
       buildProgram();
       $('tests').hidden = true; setOut(null); lastOut = ''; drawCode();
     });
-    $('tests').addEventListener('click', e => {
-      if (!e.target.closest('#next-step')) return;
+    function nextStep() {
+      if (S.step >= sc.steps.length) return;
       S.step++;
       buildProgram();
-      $('tests').hidden = true; setOut(null); lastOut = ''; drawCode();
-      ui.toast('Step ' + S.step + ' of ' + sc.steps.length, 'good');
-    });
+      $('tests').hidden = true; setOut(null); lastOut = ''; drawCode(); drawChallenges();
+    }
+    $('tests').addEventListener('click', e => { if (e.target.closest('#next-step')) nextStep(); });
+
+    // The confirmation when every test of a step passes.
+    function confirmStep() {
+      const n = S.step, last = n === sc.steps.length;
+      const back = document.createElement('div');
+      back.className = 'modal-back';
+      back.innerHTML = '<div class="modal step-done step-' + n + '" role="dialog" aria-modal="true" aria-labelledby="sd">' +
+        '<div class="big-check" aria-hidden="true">✓</div>' +
+        '<h2 id="sd">' + (last ? 'All ' + n + ' steps correct!' : 'Step ' + n + ' is correct!') + '</h2>' +
+        '<p>' + esc(sc.steps[n - 1].done) + '</p>' +
+        '<div class="modal-foot">' +
+        (last ? '<button type="button" class="btn btn-run" data-close>Done</button>'
+          : '<button type="button" class="btn btn-ghost" data-close>Stay here</button><button type="button" class="btn btn-run" data-next>Next step →</button>') +
+        '</div></div>';
+      document.body.appendChild(back);
+      const close = () => { back.remove(); document.removeEventListener('keydown', onKey); };
+      const onKey = e => { if (e.key === 'Escape') close(); };
+      document.addEventListener('keydown', onKey);
+      back.addEventListener('click', e => {
+        if (e.target === back || e.target.closest('[data-close]')) close();
+        if (e.target.closest('[data-next]')) { close(); nextStep(); }
+      });
+      back.querySelector(last ? '[data-close]' : '[data-next]').focus();
+    }
 
     // Run the code with set values and compare what it does with what it should do.
     function runTests() {
@@ -443,7 +468,7 @@
       if (passed === rows.length) {
         S.passed[S.step] = true;
         drawSteps();
-        ui.toast('Step ' + S.step + ' works!', 'good');
+        confirmStep();
       }
     }
     function summary(passed, total) {
@@ -548,9 +573,13 @@
     /* ----- challenges ----- */
     function drawChallenges(justDone) {
       const done = ui.progress()[sc.id] || {};
-      $('chal').innerHTML = sc.challenges.map((ch, i) =>
-        '<li class="' + (done[i] ? 'done' : '') + (justDone && justDone.includes(i) ? ' just' : '') + '">' +
-        '<span class="tick" aria-hidden="true">' + (done[i] ? '✓' : i + 1) + '</span><span>' + ui.notate(esc(ch.text)) + '</span></li>').join('');
+      $('chal').innerHTML = sc.challenges.map((ch, i) => {
+        const locked = !done[i] && ch.step > S.step;
+        return '<li class="' + (done[i] ? 'done' : '') + (locked ? ' locked' : '') + (justDone && justDone.includes(i) ? ' just' : '') + '">' +
+          '<span class="tick" aria-hidden="true">' + (done[i] ? '✓' : i + 1) + '</span>' +
+          '<span class="ch-step step-' + ch.step + '">Step ' + ch.step + '</span>' +
+          '<span>' + ui.notate(esc(ch.text)) + (locked ? ' <i class="ch-lock">opens at step ' + ch.step + '</i>' : '') + '</span></li>';
+      }).join('');
       $('chal-count').textContent = Object.keys(done).length + ' of ' + sc.challenges.length + ' done';
     }
     function checkChallenges(ev) {
@@ -558,7 +587,7 @@
       const done = all[sc.id] || (all[sc.id] = {});
       const newly = [];
       sc.challenges.forEach((ch, i) => {
-        if (done[i]) return;
+        if (done[i] || ch.step > S.step) return;
         let ok = false;
         try { ok = !!ch.check(ev); } catch (err) { ok = false; }
         if (ok) { done[i] = true; newly.push(i); }
@@ -574,12 +603,56 @@
       outEl.innerHTML = '<span class="out-label">DISPLAY</span><span class="out-text">' + (text ? esc(text) : '<i>nothing yet</i>') + '</span>';
     }
 
+    /* ----- questions: one at a time, then the code ----- */
     // Answers stay in this browser so a refresh does not lose them.
-    document.querySelectorAll('[data-q]').forEach(box => {
-      const key = 'teach-answers:' + sc.id + ':' + box.dataset.q;
-      try { box.value = localStorage.getItem(key) || ''; } catch (err) { /* private window */ }
-      box.addEventListener('input', () => { try { localStorage.setItem(key, box.value); } catch (err) { /* private window */ } });
+    const qs = sc.questions || [];
+    const answerKey = v => 'teach-answers:' + sc.id + ':' + v;
+    const answers = {};
+    qs.forEach(v => { try { answers[v] = localStorage.getItem(answerKey(v)) || ''; } catch (err) { answers[v] = ''; } });
+    const answered = v => answers[v].trim().length > 0;
+    const allAnswered = () => qs.every(answered);
+    if (S.qIndex == null) S.qIndex = 0;
+    if (S.showCode == null) S.showCode = allAnswered();
+    function drawQuestion() {
+      const i = S.qIndex, v = qs[i], last = i === qs.length - 1;
+      $('qbox').innerHTML =
+        '<div class="q-dots">' + qs.map((x, k) => '<span class="q-dot' + (k === i ? ' now' : answered(x) ? ' done' : '') + '"></span>').join('') + '</div>' +
+        '<label class="question"><span>Question ' + (i + 1) + ' of ' + qs.length + ': What do you think <span class="t-var">' + esc(v) + '</span> does?</span>' +
+        '<textarea id="q-text" rows="4" placeholder="Play the game, watch ' + esc(v) + ' change, and describe what it does.">' + esc(answers[v]) + '</textarea></label>' +
+        '<div class="q-nav"><button type="button" class="btn btn-ghost" id="q-back"' + (i === 0 ? ' disabled' : '') + '>← Back</button>' +
+        (last
+          ? '<button type="button" class="btn btn-run" id="q-done"' + (allAnswered() ? '' : ' disabled') + '>Show the code →</button>'
+          : '<button type="button" class="btn btn-run" id="q-next"' + (answered(v) ? '' : ' disabled') + '>Next →</button>') + '</div>' +
+        (last && !allAnswered() ? '<p class="q-left">Answer every question to see the code.</p>' : '');
+    }
+    function showView() {
+      $('qbox').hidden = S.showCode;
+      $('codebox').hidden = !S.showCode;
+      $('steps').hidden = !S.showCode;
+      $('to-questions').hidden = !S.showCode;
+      $('code-title').textContent = S.showCode ? 'Code' : 'Questions';
+      if (!S.showCode) drawQuestion();
+    }
+    $('qbox').addEventListener('input', e => {
+      if (e.target.id !== 'q-text') return;
+      const v = qs[S.qIndex];
+      answers[v] = e.target.value;
+      try { localStorage.setItem(answerKey(v), e.target.value); } catch (err) { /* private window */ }
+      const next = $('q-next'), done = $('q-done');
+      if (next) next.disabled = !answered(v);
+      if (done) done.disabled = !allAnswered();
+      const dot = $('qbox').querySelectorAll('.q-dot')[S.qIndex];
+      if (dot) dot.classList.toggle('done', answered(v));
     });
+    $('qbox').addEventListener('click', e => {
+      if (e.target.closest('#q-back')) { S.qIndex = Math.max(0, S.qIndex - 1); drawQuestion(); }
+      else if (e.target.closest('#q-next')) { S.qIndex = Math.min(qs.length - 1, S.qIndex + 1); drawQuestion(); }
+      else if (e.target.closest('#q-done') && allAnswered()) { S.showCode = true; showView(); }
+      const box = $('q-text');
+      if (box && !e.target.closest('#q-done')) box.focus();
+    });
+    $('to-questions').addEventListener('click', () => { S.showCode = false; S.qIndex = 0; showView(); });
+    showView();
 
     drawCode();
     drawMem();

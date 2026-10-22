@@ -163,19 +163,19 @@
       goal: 'Make every block minable except bedrock. Mining should take time, and diamonds can drop.',
       // diamond: how often a diamond should appear (the test runs once for every number RANDOM can give)
       steps: [
-        { tests: [
+        { done: "Bedrock can't be mined, and every other block can.", tests: [
           { say: 'Dirt', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 0, digTime: 1 }, expect: ['Block mined!'] },
           { say: 'Bedrock', vals: { distance: 2, reach: 4.5, isBedrock: true, isDiamond: false, holdTime: 0, digTime: 1 }, expect: ['Bedrock cannot be mined.'] },
           { say: 'Diamond ore', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: true, holdTime: 0, digTime: 1 }, expect: ['Block mined!'] },
         ] },
-        { tests: [
+        { done: 'Blocks now take digTime seconds to mine.', tests: [
           { say: 'Dirt, held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 1.5, digTime: 1 }, expect: ['Block mined!'] },
           { say: 'Dirt, not held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 0.4, digTime: 1 }, expect: [] },
           { say: 'Bedrock, held long enough', vals: { distance: 2, reach: 4.5, isBedrock: true, isDiamond: false, holdTime: 3, digTime: 1 }, expect: ['Bedrock cannot be mined.'] },
           { say: 'A slow block, held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 2.5, digTime: 2 }, expect: ['Block mined!'] },
           { say: 'A slow block, not held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 1.5, digTime: 2 }, expect: [] },
         ] },
-        { tests: [
+        { done: 'Blocks must be within reach, and bedrock still cannot be mined.', tests: [
           { say: 'A block in reach, held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 1.5, digTime: 1 }, expect: ['Block mined!'] },
           { say: 'A block in reach, not held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 0.4, digTime: 1 }, expect: [] },
           { say: 'A block too far away', vals: { distance: 7, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 3, digTime: 1 }, expect: ['Too far away!'] },
@@ -183,7 +183,7 @@
           { say: 'Bedrock too far away', vals: { distance: 7, reach: 4.5, isBedrock: true, isDiamond: false, holdTime: 3, digTime: 1 }, expect: ['Bedrock cannot be mined.'] },
           { say: 'A far block with a long reach', vals: { distance: 6, reach: 8, isBedrock: false, isDiamond: false, holdTime: 2.5, digTime: 2 }, expect: ['Block mined!'] },
         ] },
-        { tests: [
+        { done: 'Diamond ore always gives a diamond, and any block has a 1 in 5 bonus. Your code is finished!', tests: [
           { say: 'Dirt in reach, held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 1.5, digTime: 1 }, expect: ['Block mined!'], diamond: 1 / 5 },
           { say: 'Diamond ore in reach, held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: true, holdTime: 1.5, digTime: 1 }, expect: ['Block mined!'], diamond: 1 },
           { say: 'Diamond ore, not held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: true, holdTime: 0.4, digTime: 1 }, expect: [], diamond: 0 },
@@ -192,14 +192,16 @@
           { say: 'A far block with a long reach', vals: { distance: 6, reach: 8, isBedrock: false, isDiamond: false, holdTime: 2.5, digTime: 2 }, expect: ['Block mined!'], diamond: 1 / 5 },
         ] },
       ],
+      // step: the challenge opens once that step's code is on screen.
       challenges: [
-        { text: 'Mine a block.', check: e => true },
-        { text: 'Mine a diamond.', check: e => e.block === 'diamond ore' },
-        { text: 'Mine a block with reach 2 meters or less.', check: e => e.vals.reach <= 2 },
-        { text: 'Mine a block more than 8 meters away.', check: e => e.distance > 8 },
-        { text: 'Mine a block with digTime 0.', check: e => e.vals.digTime === 0 },
-        { text: 'Change AND to OR, then mine bedrock.', check: e => e.refs.logic.op === 'OR' && e.block === 'bedrock' },
-        { text: 'Get a bonus diamond from a block that is not diamond ore.', check: e => e.gem && !e.vals.isDiamond },
+        { step: 1, text: 'Mine any block that is not bedrock.', check: e => e.block !== 'bedrock' },
+        { step: 2, text: 'Set digTime to 3 or more, then hold the mouse button until the block breaks.', check: e => e.vals.digTime >= 3 && e.vals.holdTime >= 3 },
+        { step: 2, text: 'Set digTime to 0, then break a block instantly.', check: e => e.vals.digTime === 0 },
+        { step: 3, text: 'Set reach to 2 or less, then mine a block right next to you.', check: e => e.vals.reach <= 2 && e.distance <= e.vals.reach },
+        { step: 3, text: 'Set reach to more than 8, then mine a block more than 8 meters away.', check: e => e.vals.reach > 8 && e.distance > 8 },
+        { step: 3, text: 'Bug hunt: change the AND in step 3 to OR, then mine bedrock. Why can you?', check: e => e.refs.logic && e.refs.logic.op === 'OR' && e.block === 'bedrock' },
+        { step: 4, text: 'Mine a diamond ore block and get its diamond.', check: e => e.block === 'diamond ore' && e.gem },
+        { step: 4, text: 'Get a bonus diamond from a block that is NOT diamond ore.', check: e => e.gem && !e.vals.isDiamond },
       ],
       // One question per variable: students describe it, then use that to fill in the blanks.
       questions: ['reach', 'digTime', 'distance', 'isBedrock', 'isDiamond', 'holdTime'],
