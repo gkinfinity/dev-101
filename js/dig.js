@@ -1,7 +1,8 @@
 /* The Dig Site: a small block world drawn with WebGL, no libraries.
    The page's pseudocode decides what digging does: every frame that the mouse
    button is held on a block, the program runs once with the live variables
-   (distance, reach, isBedrock, holdTime, digTime, frameTime). */
+   (distance, reach, isBedrock, holdTime, digTime). The world counts holdTime:
+   seconds the button has been held on the same block. */
 (function () {
   'use strict';
   const TT = window.TT;
@@ -179,7 +180,7 @@
 
   const WORLD_FS = HEAD + [
     'varying vec2 vUV; varying float vTile; varying float vLight; varying vec3 vPos; varying vec3 vNormal;',
-    'uniform vec3 uEye; uniform vec3 uFog; uniform float uReach; uniform float uOp; uniform float uShowReach;',
+    'uniform vec3 uEye; uniform vec3 uFog;',
     'vec3 dirt(float n) { return mix(vec3(0.42, 0.28, 0.16), vec3(0.57, 0.39, 0.24), n); }',
     'vec3 stone(float n) { return mix(vec3(0.42, 0.43, 0.45), vec3(0.6, 0.61, 0.63), n); }',
     'vec3 grass(float n) { return mix(vec3(0.29, 0.55, 0.17), vec3(0.45, 0.72, 0.27), n); }',
@@ -199,24 +200,8 @@
     '  vec3 ore = t < 8.5 ? vec3(0.08) : t < 9.5 ? vec3(1.0, 0.8, 0.22) : vec3(0.35, 0.97, 0.97);',
     '  return (spot > 0.6 && m > 0.25) ? ore * (0.8 + 0.35 * n) : stone(n);',
     '}',
-    'bool inReach(float d) {',
-    '  if (uOp < 0.5) return d < uReach;',
-    '  if (uOp < 1.5) return d <= uReach;',
-    '  if (uOp < 2.5) return d > uReach;',
-    '  if (uOp < 3.5) return d >= uReach;',
-    '  if (uOp < 4.5) return abs(d - uReach) < 0.005;',
-    '  return abs(d - uReach) >= 0.005;',
-    '}',
     'void main() {',
     '  vec3 col = tex(vTile, vUV) * vLight;',
-    '  if (uShowReach > 0.5) {',
-    '    vec3 center = floor(vPos - vNormal * 0.5) + 0.5;',
-    '    float d = floor(distance(uEye, center) * 100.0 + 0.5) / 100.0;',
-    '    if (inReach(d)) {',
-    '      float edge = min(1.0, step(vUV.x, 0.035) + step(0.965, vUV.x) + step(vUV.y, 0.035) + step(0.965, vUV.y));',
-    '      col = mix(col, vec3(0.0, 1.0, 0.42), 0.07 + 0.38 * edge);',
-    '    }',
-    '  }',
     '  float fog = smoothstep(24.0, 48.0, distance(uEye, vPos));',
     '  gl_FragColor = vec4(mix(col, uFog, fog), 1.0);',
     '}',
@@ -304,7 +289,6 @@
   /* ===================================================================== */
   let saved = null;  // the world and the player survive a trip to another page
 
-  const OP_INDEX = { '<': 0, '<=': 1, '>': 2, '>=': 3, '==': 4, '!=': 5 };
   const round2 = x => Math.round(x * 100) / 100;
 
   TT.digPage = function (sc, app, ui) {
@@ -313,7 +297,7 @@
       const prog = TT.prepare(sc.code(B));
       const vals = {};
       sc.vars.forEach(v => { vals[v.name] = v.init; });
-      saved = { prog, vals, edited: false, world: null, player: null, mined: 0, showReach: true };
+      saved = { prog, vals, edited: false, world: null, player: null, mined: 0 };
     }
     const S = saved;
     const varDef = name => sc.vars.find(v => v.name === name);
@@ -321,8 +305,7 @@
     app.innerHTML =
       '<div class="sc-head">' +
       (ui.solo ? '' : '<a class="back-link" href="#/">← All scenarios</a>') +
-      '<div class="sc-title">' + (ui.solo ? '' : '<span class="sc-num">' + sc.num + '</span>') + '<div><h1>' + esc(sc.title) + '</h1>' +
-      '<div class="chips">' + ui.chips(sc.concepts) + '</div></div></div>' +
+      '<div class="sc-title">' + (ui.solo ? '' : '<span class="sc-num">' + sc.num + '</span>') + '<div><h1>' + esc(sc.title) + '</h1></div></div>' +
       '</div>' +
       '<div class="dig-cols">' +
       '<div class="col">' +
@@ -331,50 +314,40 @@
       '<canvas id="dig-canvas" tabindex="0" aria-label="3D block world. Click to play."></canvas>' +
       '<div class="xh" id="xh" aria-hidden="true"></div>' +
       '<div class="w-hud w-tl" id="hud-target">looking at: nothing</div>' +
-      '<div class="w-hud w-tr" id="hud-count">mined 0</div>' +
       '<div class="dig-bar" id="dig-bar"><div id="dig-fill"></div></div>' +
       '<div class="pick" id="pick" aria-hidden="true"><svg viewBox="0 0 120 120"><g transform="rotate(-35 60 60)">' +
       '<rect x="55" y="38" width="10" height="78" rx="3" fill="#8b5a2b" stroke="#3b200c" stroke-width="2"/>' +
       '<path d="M14,44 Q60,14 106,44 L100,52 Q60,30 20,52Z" fill="#5ef2ff" stroke="#127c8c" stroke-width="2.5"/></g></svg></div>' +
       '<div class="w-overlay" id="w-overlay"><button type="button" class="btn btn-run" id="enter">▶ Enter the world</button>' +
-      '<p><b>WASD</b> move · <b>mouse</b> look · <b>hold click</b> dig · <b>space</b> jump · <b>Esc</b> exit</p>' +
-      '<p class="muted small"><b>arrow keys</b> look · <b>F</b> dig</p></div>' +
+      '<p><b>WASD</b> move · <b>mouse</b> look · <b>hold click</b> dig · <b>space</b> jump · <b>Esc</b> exit</p></div>' +
       '<div class="w-overlay" id="no-gl" hidden><p>3D is not available in this browser.</p></div>' +
       '</div>' +
       '<div class="screen-out" id="out"><span class="out-label">OUTPUT</span><span class="out-text"><i>nothing yet</i></span></div>' +
-      '<div class="world-tools"><label class="mini"><input type="checkbox" id="show-reach"' + (S.showReach ? ' checked' : '') + '> Show reach</label>' +
-      '<button type="button" class="btn btn-ghost" id="respawn">⤒ Respawn</button>' +
-      '<button type="button" class="btn btn-ghost" id="new-world">↺ New world</button></div>' +
+      '<div class="world-tools"><button type="button" class="btn btn-ghost" id="respawn">⤒ Respawn</button></div>' +
       '</section>' +
       '<section class="panel p-mem"><div class="panel-head"><h2>Memory</h2></div>' +
       '<div class="mem" id="mem"></div></section>' +
       '<section class="panel p-chal"><div class="panel-head"><h2>Challenges</h2><span class="panel-sub" id="chal-count"></span></div><ol class="chal" id="chal"></ol></section>' +
       '</div>' +
       '<div class="col">' +
-      '<section class="panel p-code" id="code-panel"><div class="panel-head"><h2>Code</h2><span class="every-frame">runs every frame</span>' +
-      '<div class="seg" role="group" aria-label="How to show the code"><button type="button" data-view="blocks">Blocks</button><button type="button" data-view="pseudo">Pseudocode</button></div></div>' +
+      '<section class="panel p-code" id="code-panel"><div class="panel-head"><h2>Code</h2></div>' +
       '<div class="code-wrap" id="code"></div>' +
       '<div class="undo-bar" id="undo" hidden><button type="button" class="link-btn" id="undo-btn">Undo code changes</button></div></section>' +
-      '<section class="panel p-trace"><div class="panel-head"><h2>This frame</h2></div>' +
-      '<ol class="trace" id="trace"></ol></section>' +
+      '<section class="panel p-trace"><div class="panel-head"><h2>Step by step</h2></div>' +
+      '<ol class="trace live" id="trace"></ol></section>' +
       '</div></div>' +
       (ui.solo ? '' : '<nav class="pager">' + (ui.prev ? '<a class="btn btn-ghost" href="#/' + ui.prev.id + '">← ' + esc(ui.prev.title) + '</a>' : '<span></span>') +
       '<a class="btn btn-ghost" href="#/">All scenarios</a></nav>');
 
     const $ = id => document.getElementById(id);
     const canvas = $('dig-canvas'), worldEl = $('world'), codeEl = $('code'), memEl = $('mem'), traceEl = $('trace');
-    const xh = $('xh'), hudTarget = $('hud-target'), hudCount = $('hud-count'), digBar = $('dig-bar'), digFill = $('dig-fill');
+    const xh = $('xh'), hudTarget = $('hud-target'), digBar = $('dig-bar'), digFill = $('dig-fill');
     const pick = $('pick'), overlay = $('w-overlay'), outEl = $('out');
 
     /* ----- code panel ----- */
     let lastSig = '';
     function drawCode() {
-      codeEl.innerHTML = TT.renderCode(S.prog, TT.settings.view);
-      document.querySelectorAll('.seg [data-view]').forEach(b => {
-        const on = b.dataset.view === TT.settings.view;
-        b.classList.toggle('on', on);
-        b.setAttribute('aria-pressed', on);
-      });
+      codeEl.innerHTML = TT.renderCode(S.prog, 'pseudo');
       $('undo').hidden = !S.edited;
       lastSig = '';
     }
@@ -383,7 +356,6 @@
       const t = e.target;
       if (t.matches('select.op')) { S.prog.nodes[t.dataset.eid].op = t.value; codeEdited(); }
       else if (t.matches('input.num')) { const n = parseFloat(t.value); if (!isNaN(n)) S.prog.nodes[t.dataset.eid].v = n; codeEdited(); }
-      else if (t.matches('input.opt-toggle')) { S.prog.stmts[t.dataset.sid].on = t.checked; codeEdited(); }
     });
     codeEl.addEventListener('click', e => {
       const b = e.target.closest('.not-btn');
@@ -394,13 +366,8 @@
     });
     codeEl.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('input.num')) e.target.blur(); });
     $('undo-btn').addEventListener('click', () => { S.prog = TT.prepare(sc.code(B)); S.edited = false; drawCode(); });
-    document.querySelectorAll('.seg [data-view]').forEach(b => b.addEventListener('click', () => {
-      TT.settings.view = b.dataset.view;
-      ui.saveSettings();
-      drawCode();
-    }));
 
-    // Light up the parts of the code that ran this frame.
+    // Light up the parts of the code that just ran.
     function markCode(steps) {
       const sig = steps.map(s => s.kind + ':' + s.sid + ':' + (s.branch == null ? '' : s.branch) + ':' + (s.value == null ? '' : s.value)).join('|');
       if (sig === lastSig) return;
@@ -442,7 +409,7 @@
         const role = vd.role || 'input';
         if (vd.slider) {
           return '<div class="box box-slider"><div class="box-top"><span class="box-name">' + vd.name + '</span><span class="vb vb-n" id="sv-' + vd.name + '">' +
-            TT.fmt(S.vals[vd.name]) + '</span><span class="unit">' + vd.unit + '</span></div>' +
+            TT.fmt(S.vals[vd.name]) + '</span><span class="unit">' + (vd.unit || '') + '</span></div>' +
             '<input type="range" min="' + vd.min + '" max="' + vd.max + '" step="' + vd.step + '" value="' + S.vals[vd.name] + '" data-var="' + vd.name + '" aria-label="' + vd.name + '">' +
             '</div>';
         }
@@ -460,7 +427,7 @@
     function updateMem() {
       sc.vars.forEach(vd => {
         if (vd.slider) return;
-        const html = badgeHTML(S.vals[vd.name]);
+        const html = badgeHTML(S.vals[vd.name]) + (vd.unit ? ' <span class="unit">' + vd.unit + '</span>' : '');
         if (lastMem[vd.name] === html) return;
         lastMem[vd.name] = html;
         const el = $('mv-' + vd.name);
@@ -636,8 +603,6 @@
     }
     $('enter').addEventListener('click', enter);
     $('respawn').addEventListener('click', () => { respawn(); canvas.focus({ preventScroll: true }); });
-    $('new-world').addEventListener('click', () => { newWorld((Math.random() * 1e9) | 0); canvas.focus({ preventScroll: true }); });
-    $('show-reach').addEventListener('change', e => { S.showReach = e.target.checked; });
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
     window.addEventListener('mousemove', onMouseMove);
@@ -658,7 +623,7 @@
     }
 
     /* ----- the frame loop ----- */
-    let raf = 0, last = performance.now(), uiTimer = 0, holdCount = 0, lastTargetKey = '', lastOut = '';
+    let raf = 0, last = performance.now(), uiTimer = 0, holdKey = '', lastTargetKey = '', lastOut = '';
     let target = null, lastSteps = [], previewLines = null;
 
     function frame(now) {
@@ -701,7 +666,6 @@
       const hit = raycast(world, eye, dir, 40);
       target = hit;
       const V = S.vals;
-      V.frameTime = dt;
       let condValue = null;
       if (hit) {
         const b = world.get(hit.x, hit.y, hit.z);
@@ -721,6 +685,8 @@
       const digging = (mouseDig || keyDig) && hit;
       if (digging) {
         const b = world.get(hit.x, hit.y, hit.z);
+        const key = hit.x + ',' + hit.y + ',' + hit.z;
+        if (key !== holdKey) { holdKey = key; V.holdTime = 0; } else V.holdTime += dt;
         const ctx = {};
         const steps = [];
         for (const st of TT.run(S.prog, V, ctx)) steps.push(st);
@@ -735,17 +701,16 @@
             burst(hit.x, hit.y, hit.z, b);
             rebuild();
             S.mined++;
-            holdCount++;
-            hudCount.textContent = 'mined ' + S.mined;
-            pulseEl(hudCount);
-            checkChallenges({ block: NAMES[b], distance: V.distance, vals: Object.assign({}, V), refs: S.prog.refs, holdCount });
+            holdKey = '';
+            V.holdTime = 0;
+            checkChallenges({ block: NAMES[b], distance: V.distance, vals: Object.assign({}, V), refs: S.prog.refs });
           }
           if (lastOut !== o.text) { setOut(o.text, o.fx === 'far' || o.fx === 'bedrock' ? 'warn' : ''); lastOut = o.text; }
         }
         const main = S.prog.main;
         condValue = main && ctx.taken ? ctx.taken[main.id] === 0 : null;
       } else {
-        if (!(mouseDig || keyDig)) { V.holdTime = 0; holdCount = 0; }
+        if (!(mouseDig || keyDig)) { V.holdTime = 0; holdKey = ''; }
         lastSteps = [];
         if (hit && S.prog.main) {
           try { condValue = TT.evaluate(S.prog.main.branches[0].cond, V) === true; } catch (err) { condValue = null; }
@@ -776,9 +741,9 @@
         updateMem();
         if (lastSteps.length) {
           markCode(lastSteps);
-          traceEl.innerHTML = lastSteps.filter(s => !s.silent && s.kind !== 'done')
+          const html = lastSteps.filter(s => !s.silent && s.kind !== 'done')
             .map((s, i) => { const h = TT.stepHTML(s, i + 1); return '<li class="tr ' + h.cls + '">' + h.html + '</li>'; }).join('');
-          previewLines = null;
+          if (html !== previewLines) { traceEl.innerHTML = html; previewLines = html; }
         } else if (hit && S.prog.main) {
           markCode([]);
           const r = TT.solve(S.prog.main.branches[0].cond, V);
@@ -790,8 +755,6 @@
         }
       }
     }
-
-    function pulseEl(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
 
     function resize() {
       const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
@@ -825,10 +788,6 @@
       gl.uniformMatrix4fv(wp.u.uMVP, false, mvp);
       gl.uniform3fv(wp.u.uEye, eye);
       gl.uniform3fv(wp.u.uFog, SKY);
-      gl.uniform1f(wp.u.uReach, S.vals.reach);
-      const rc = S.prog.refs.reachCmp;
-      gl.uniform1f(wp.u.uOp, rc ? OP_INDEX[rc.op] : 1);
-      gl.uniform1f(wp.u.uShowReach, S.showReach ? 1 : 0);
       gl.drawArrays(gl.TRIANGLES, 0, meshCount);
       Object.values(wp.a).forEach(loc => gl.disableVertexAttribArray(loc));
 
@@ -875,7 +834,6 @@
       }
     }
 
-    hudCount.textContent = 'mined ' + S.mined;
     raf = requestAnimationFrame(frame);
 
     // Exposed for automated checks: aim the player and dig without a mouse.

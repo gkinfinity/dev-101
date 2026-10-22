@@ -11,7 +11,7 @@
 
    The Dig Site (kind: 'dig') is different: its program runs every frame
    inside a 3D world (dig.js), and its challenges are checked each time a
-   block is mined, with { block, distance, vals, refs, holdCount }. */
+   block is mined, with { block, distance, vals, refs }. */
 (function () {
   'use strict';
   const TT = window.TT;
@@ -121,21 +121,16 @@
       title: 'The Dig Site',
       concepts: ['Every frame', 'Variables', 'Math', 'AND', 'NOT', 'ELSE IF'],
       vars: [
-        { name: 'reach', type: 'num', init: 4.5, min: 1, max: 12, step: 0.5, slider: true, unit: 'blocks' },
+        { name: 'reach', type: 'num', init: 4.5, min: 1, max: 12, step: 0.5, slider: true, unit: 'meters' },
         { name: 'digTime', type: 'num', init: 1, min: 0, max: 5, step: 0.1, slider: true, unit: 'seconds' },
-        { name: 'distance', type: 'num', init: 0, role: 'calc' },
+        { name: 'distance', type: 'num', init: 0, role: 'calc', unit: 'meters' },
         { name: 'isBedrock', type: 'bool', init: false, role: 'calc' },
-        { name: 'holdTime', type: 'num', init: 0, role: 'calc' },
-        { name: 'frameTime', type: 'num', init: 0, role: 'calc' },
+        { name: 'holdTime', type: 'num', init: 0, role: 'calc', unit: 'seconds' },
       ],
       code: B => [
         B.iff([
           [B.and(B.cmp(B.v('distance'), '<=', B.v('reach'), 'reachCmp'), B.not(B.v('isBedrock'), 'not'), 'logic'), [
-            B.set('holdTime', B.math(B.v('holdTime'), '+', B.v('frameTime'))),
-            B.iff([[B.cmp(B.v('holdTime'), '>=', B.v('digTime'), 'doneCmp'), [
-              B.set('holdTime', 0, { optional: true, on: true, ref: 'reset' }),
-              B.out('Block mined!', 'mine'),
-            ]]], null),
+            B.iff([[B.cmp(B.v('holdTime'), '>=', B.v('digTime'), 'doneCmp'), [B.out('Block mined!', 'mine')]]], null),
           ]],
           [B.v('isBedrock'), [B.out('Bedrock cannot be mined.', 'bedrock')]],
         ], [B.out('Too far away!', 'far')], { main: true }),
@@ -143,11 +138,10 @@
       challenges: [
         { text: 'Mine a block.', check: e => true },
         { text: 'Mine a diamond.', check: e => e.block === 'diamond ore' },
-        { text: 'Mine a block with reach 2 or less.', check: e => e.vals.reach <= 2 },
-        { text: 'Mine a block more than 8 away.', check: e => e.distance > 8 },
-        { text: 'Mine 15 blocks in one hold with digTime 0.', check: e => e.vals.digTime === 0 && e.holdCount >= 15 },
+        { text: 'Mine a block with reach 2 meters or less.', check: e => e.vals.reach <= 2 },
+        { text: 'Mine a block more than 8 meters away.', check: e => e.distance > 8 },
+        { text: 'Mine a block with digTime 0.', check: e => e.vals.digTime === 0 },
         { text: 'Change AND to OR, then mine bedrock.', check: e => e.refs.logic.op === 'OR' && e.block === 'bedrock' },
-        { text: 'Turn off holdTime ← 0, then mine 5 blocks in one hold.', check: e => !e.refs.reset.on && e.holdCount >= 5 },
       ],
     },
   ];

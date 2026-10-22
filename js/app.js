@@ -19,7 +19,10 @@
       try { localStorage.setItem('gamedev101:' + key, JSON.stringify(value)); } catch (e) { /* private window */ }
     },
   };
-  Object.assign(TT.settings, store.get('settings', {}));
+  // No settings button on the page, so stored notation choices are ignored.
+  const stored = store.get('settings', {});
+  if (!$('#settings-btn')) { delete stored.assign; delete stored.cmp; }
+  Object.assign(TT.settings, stored);
   const saveSettings = () => store.set('settings', TT.settings);
   let progress = store.get('progress', {});
 
@@ -894,7 +897,7 @@
     back.querySelector('input').focus();
   }
 
-  $('#settings-btn').addEventListener('click', openSettings);
+  if ($('#settings-btn')) $('#settings-btn').addEventListener('click', openSettings);
   window.addEventListener('hashchange', route);
   route();
 })();
