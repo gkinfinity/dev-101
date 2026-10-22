@@ -872,6 +872,8 @@
     back.innerHTML = '<div class="modal" role="dialog" aria-modal="true" aria-labelledby="st">' +
       '<h2 id="st">Settings</h2>' +
       '<fieldset><legend>Challenges</legend><button type="button" class="btn btn-ghost" id="clear-progress">Reset challenges</button></fieldset>' +
+      '<fieldset><legend>Start over</legend><p class="set-note">Clears the answers, the code, the world and the diamonds saved in this browser.</p>' +
+      '<button type="button" class="btn btn-ghost" id="start-over">Start over</button></fieldset>' +
       '<div class="modal-foot"><button type="button" class="btn btn-run" data-close>Done</button></div></div>';
     document.body.appendChild(back);
     const close = () => { back.remove(); document.removeEventListener('keydown', onKey); route(); };
@@ -883,6 +885,13 @@
         progress = {};
         store.set('progress', progress);
         e.target.closest('#clear-progress').textContent = 'Challenges reset';
+      }
+      const over = e.target.closest('#start-over');
+      if (over) {
+        // two clicks, so it cannot happen by accident
+        if (!over.dataset.armed) { over.dataset.armed = '1'; over.textContent = 'Click again to start over'; return; }
+        if (TT.digReset) TT.digReset();
+        close();
       }
     });
     back.querySelector('#clear-progress').focus();

@@ -414,6 +414,7 @@ select.op option { color: #d7ffe0; background: #031009; }
 .pred:hover, .pred:focus-visible { border-color: var(--neon); background: rgba(0, 255, 106, .08); box-shadow: var(--glow); }
 .modal-foot { display: flex; justify-content: flex-end; margin-top: 12px; }
 .modal fieldset { border: 1px solid var(--line); border-radius: 10px; margin: 12px 0; padding: 10px 14px; }
+.modal .set-note { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
 .modal legend { font-family: var(--mono); font-weight: 800; padding: 0 6px; color: var(--ink); }
 .radio { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
 .radio input { width: 18px; height: 18px; accent-color: var(--neon); }

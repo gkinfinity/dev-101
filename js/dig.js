@@ -341,16 +341,44 @@
   /* ===================================================================== */
   let saved = null;  // the world and the player survive a trip to another page
 
+  // Everything on the page is also kept in this browser, so a refresh loses nothing.
+  const STATE_KEY = 'gamedev101:dig-state';
+  function loadState() {
+    try { return JSON.parse(localStorage.getItem(STATE_KEY) || 'null'); } catch (err) { return null; }
+  }
+  // Start over: forget the answers, the code, the world and the diamonds (not the challenges).
+  TT.digReset = function () {
+    try {
+      localStorage.removeItem(STATE_KEY);
+      Object.keys(localStorage).filter(k => k.startsWith('teach-answers:dig:')).forEach(k => localStorage.removeItem(k));
+    } catch (err) { /* private window */ }
+    saved = null;
+  };
+
   const round2 = x => Math.round(x * 100) / 100;
 
   TT.digPage = function (sc, app, ui) {
     const B = TT.B;
+    // The blank puzzle, to tell whether a saved one still matches this version of it.
+    const blankSig = JSON.stringify(sc.parts(B));
     if (!saved) {
-      const parts = sc.parts(B);
-      const prog = TT.prepare(sc.program(B, parts, 1));
       const vals = {};
       sc.vars.forEach(v => { vals[v.name] = v.init; });
-      saved = { parts, step: 1, passed: {}, prog, vals, edited: false, world: null, player: null, mined: 0, items: [], gems: 0 };
+      saved = { parts: sc.parts(B), step: 1, passed: {}, vals, edited: false, world: null, player: null, mined: 0, items: [], gems: 0, dug: [] };
+      const old = loadState();
+      if (old && old.sig === blankSig) {
+        try {
+          const step = Math.min(sc.steps.length, Math.max(1, old.step | 0));
+          TT.prepare(sc.program(B, old.parts, step));  // throws if the saved code is broken
+          Object.assign(saved, {
+            parts: old.parts, step, passed: old.passed || {}, showCode: old.showCode, qIndex: Math.min((sc.questions || []).length - 1, Math.max(0, old.qIndex | 0)),
+            mined: old.mined | 0, gems: old.gems | 0, dug: Array.isArray(old.dug) ? old.dug : [], savedPlayer: old.player,
+            items: (old.items || []).map(it => ({ p: it.p, v: [0, 0, 0], age: 1, spin: Math.random() * 6, fly: -1, ev: it.ev || {} })),
+          });
+          sc.vars.forEach(v => { if (v.slider && typeof (old.vals || {})[v.name] === 'number') vals[v.name] = Math.min(v.max, Math.max(v.min, old.vals[v.name])); });
+        } catch (err) { /* keep the fresh start */ }
+      }
+      saved.prog = TT.prepare(sc.program(B, saved.parts, saved.step));
     }
     const S = saved;
     const varDef = name => sc.vars.find(v => v.name === name);
@@ -772,7 +800,11 @@
     function newWorld(seed) {
       world = makeWorld(seed);
       S.world = world;
+      for (let i = 0; i + 2 < S.dug.length; i += 3) world.set(S.dug[i], S.dug[i + 1], S.dug[i + 2], AIR);
       respawn();
+      const sp = S.savedPlayer;
+      if (sp && [sp.x, sp.y, sp.z, sp.yaw, sp.pitch].every(Number.isFinite)) Object.assign(P, { x: sp.x, y: sp.y, z: sp.z, yaw: sp.yaw, pitch: sp.pitch });
+      delete S.savedPlayer;
       rebuild();
     }
     function respawn() {
@@ -781,6 +813,24 @@
       S.player = P;
     }
     if (S.world) { world = S.world; P = S.player; rebuild(); } else newWorld(20261022);
+
+    /* ----- saving ----- */
+    let lastSaved = '';
+    function persist() {
+      if (saved !== S) return;  // started over
+      const state = JSON.stringify({
+        sig: blankSig, parts: S.parts, step: S.step, passed: S.passed, showCode: S.showCode, qIndex: S.qIndex,
+        vals: S.vals, mined: S.mined, gems: S.gems, dug: S.dug,
+        player: { x: round2(P.x), y: round2(P.y), z: round2(P.z), yaw: round2(P.yaw), pitch: round2(P.pitch) },
+        items: S.items.map(it => ({ p: it.p.map(round2), ev: { block: it.ev.block, distance: it.ev.distance, vals: it.ev.vals } })),
+      });
+      if (state === lastSaved) return;
+      lastSaved = state;
+      try { localStorage.setItem(STATE_KEY, state); } catch (err) { /* private window */ }
+    }
+    const onHide = () => { if (document.hidden) persist(); };
+    window.addEventListener('pagehide', persist);
+    document.addEventListener('visibilitychange', onHide);
 
     const solidAt = (x, y, z) => {
       if (x < 0 || x >= SX || z < 0 || z >= SZ || y < 0) return true;
@@ -931,7 +981,7 @@
     }
 
     /* ----- the frame loop ----- */
-    let raf = 0, last = performance.now(), uiTimer = 0, holdKey = '', lastTargetKey = '', lastOut = '';
+    let raf = 0, last = performance.now(), uiTimer = 0, saveTimer = 1, holdKey = '', lastTargetKey = '', lastOut = '';
     let target = null, lastSteps = [], previewLines = null, keepSteps = [], keepUntil = 0;
 
     function frame(now) {
@@ -1012,6 +1062,7 @@
           const gem = outs.some(x => x.fx === 'gem');
           if (outs.some(x => x.fx === 'mine')) {
             world.set(hit.x, hit.y, hit.z, AIR);
+            S.dug.push(hit.x, hit.y, hit.z);
             burst(hit.x, hit.y, hit.z, b);
             rebuild();
             S.mined++;
@@ -1029,14 +1080,15 @@
       }
 
       // Green or red follows what the student's code would do with this block if
-      // the button were held long enough; null while the code has blanks.
+      // the button were held long enough. While the code has blanks it shows reach
+      // instead (green within reach, red beyond it), as a clue to what reach means.
       const canMine = hit ? wouldMine(V, 1e9) : null;
-      condValue = canMine;
+      condValue = hit ? (canMine == null ? V.distance <= V.reach : canMine) : null;
       // The bar only matters when the code makes mining take time.
       const timed = !!canMine && !wouldMine(V, 0);
 
       // HUD
-      xh.className = 'xh' + (canMine == null ? '' : canMine ? ' ok' : ' no');
+      xh.className = 'xh' + (condValue == null ? '' : condValue ? ' ok' : ' no');
       const prog = V.digTime > 0 ? Math.min(1, V.holdTime / V.digTime) : (digging ? 1 : 0);
       digBar.classList.toggle('on', !!digging && timed);
       digFill.style.width = (prog * 100).toFixed(1) + '%';
@@ -1054,6 +1106,9 @@
 
       // Cracks only on a block the code will actually mine.
       draw(eye, dir, digging && canMine ? prog : 0, condValue);
+
+      saveTimer -= dt;
+      if (saveTimer <= 0) { saveTimer = 1; persist(); }
 
       // the slower panels
       uiTimer -= dt;
@@ -1206,9 +1261,13 @@
       mined: () => S.mined,
       items: () => items,
       gems: () => S.gems,
+      block: (x, y, z) => NAMES[world.get(x, y, z)],
     };
 
     return function cleanup() {
+      persist();
+      window.removeEventListener('pagehide', persist);
+      document.removeEventListener('visibilitychange', onHide);
       cancelAnimationFrame(raf);
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
