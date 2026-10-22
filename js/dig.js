@@ -324,12 +324,11 @@
       '<p><b>WASD</b> move · <b>mouse</b> look · <b>hold click</b> dig · <b>space</b> jump</p>' +
       '<p><b>Esc</b> pauses the game so you can edit the code.</p></div>' +
       '<div class="w-overlay" id="no-gl" hidden><p>3D is not available in this browser.</p></div>' +
+      '<div class="w-vars" id="mem" aria-label="Variables"></div>' +
       '</div>' +
       '<div class="screen-out" id="out"><span class="out-label">DISPLAY</span><span class="out-text"><i>nothing yet</i></span></div>' +
       '<div class="world-tools"><button type="button" class="btn btn-ghost" id="respawn">⤒ Respawn</button></div>' +
       '</section>' +
-      '<section class="panel p-mem"><div class="panel-head"><h2>Memory</h2></div>' +
-      '<div class="mem" id="mem"></div></section>' +
       '</div>' +
       '<div class="col">' +
       '<section class="panel p-code" id="code-panel"><div class="panel-head"><h2>Code</h2></div>' +
@@ -438,17 +437,18 @@
     }
 
     /* ----- memory panel ----- */
+    const UNIT = { meters: 'm', seconds: 's' };
+    const unitHTML = vd => (vd.unit ? '<span class="unit">' + (UNIT[vd.unit] || vd.unit) + '</span>' : '');
     function drawMem() {
       memEl.innerHTML = sc.vars.map(vd => {
-        const role = vd.role || 'input';
         if (vd.slider) {
-          return '<div class="box box-slider"><div class="box-top"><span class="box-name">' + vd.name + '</span><span class="vb vb-n" id="sv-' + vd.name + '">' +
-            sliderText(vd, S.vals[vd.name]) + '</span><span class="unit">' + (vd.unit || '') + '</span></div>' +
-            '<input type="range" min="' + vd.min + '" max="' + vd.max + '" step="' + vd.step + '" value="' + S.vals[vd.name] + '" data-var="' + vd.name + '" aria-label="' + vd.name + '">' +
-            '</div>';
+          const range = ' min="' + vd.min + '" max="' + vd.max + '" step="' + vd.step + '" data-var="' + vd.name + '"';
+          return '<div class="wv wv-edit"><div class="wv-row"><span class="wv-name">' + vd.name + '</span>' +
+            '<span><input type="number" class="wv-num"' + range + ' value="' + sliderText(vd, S.vals[vd.name]) + '" aria-label="' + vd.name + '">' + unitHTML(vd) + '</span></div>' +
+            '<input type="range"' + range + ' value="' + S.vals[vd.name] + '" aria-label="' + vd.name + ' slider"></div>';
         }
-        return '<div class="box role-' + role + '"><div class="box-top"><span class="box-name">' + vd.name + '</span></div>' +
-          '<div class="mem-val" id="mv-' + vd.name + '"></div></div>';
+        return '<div class="wv"><div class="wv-row"><span class="wv-name">' + vd.name + '</span>' +
+          '<span><span class="wv-val" id="mv-' + vd.name + '"></span>' + unitHTML(vd) + '</span></div></div>';
       }).join('');
       updateMem();
     }
@@ -465,21 +465,31 @@
     function updateMem() {
       sc.vars.forEach(vd => {
         if (vd.slider) return;
-        const html = badgeHTML(S.vals[vd.name]) + (vd.unit ? ' <span class="unit">' + vd.unit + '</span>' : '');
+        const html = badgeHTML(S.vals[vd.name]);
         if (lastMem[vd.name] === html) return;
         lastMem[vd.name] = html;
         const el = $('mv-' + vd.name);
         if (el) el.innerHTML = html;
       });
     }
+    // The slider and the number box show the same variable; keep them together.
+    function setVar(name, n) {
+      const vd = varDef(name);
+      n = Math.min(vd.max, Math.max(vd.min, Math.round(n / vd.step) * vd.step));
+      S.vals[name] = Math.round(n * 100) / 100;
+      memEl.querySelectorAll('[data-var="' + name + '"]').forEach(el => {
+        el.value = el.type === 'number' ? sliderText(vd, S.vals[name]) : S.vals[name];
+      });
+    }
     memEl.addEventListener('input', e => {
-      const t = e.target;
-      if (!t.dataset.var) return;
-      const n = parseFloat(t.value);
-      S.vals[t.dataset.var] = n;
-      $('sv-' + t.dataset.var).textContent = sliderText(varDef(t.dataset.var), n);
+      if (e.target.type === 'range') setVar(e.target.dataset.var, parseFloat(e.target.value));
     });
-    memEl.addEventListener('change', () => canvas.focus({ preventScroll: true }));
+    memEl.addEventListener('change', e => {
+      if (e.target.type !== 'number') return;
+      const n = parseFloat(e.target.value);
+      setVar(e.target.dataset.var, isNaN(n) ? S.vals[e.target.dataset.var] : n);
+    });
+    memEl.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.type === 'number') e.target.blur(); });
 
     /* ----- challenges ----- */
     function drawChallenges(justDone) {
