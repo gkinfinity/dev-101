@@ -344,7 +344,7 @@ select.op option { color: #d7ffe0; background: #031009; }
 .blk-not.off { text-decoration: line-through; opacity: .85; border-style: dashed; }
 
 /* optional (on/off) blocks */
-.opt { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; margin-right: 2px; }
+.opt { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; margin-right: 8px; }
 .opt input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .opt-track { width: 34px; height: 20px; border-radius: 999px; background: rgba(0, 0, 0, .45); position: relative; flex: none; transition: background .15s; }
 .opt-track::after { content: ""; position: absolute; left: 3px; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: left .15s; }
