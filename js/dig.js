@@ -294,10 +294,11 @@
   TT.digPage = function (sc, app, ui) {
     const B = TT.B;
     if (!saved) {
-      const prog = TT.prepare(sc.code(B));
+      const parts = sc.parts(B);
+      const prog = TT.prepare(sc.program(B, parts, 1));
       const vals = {};
       sc.vars.forEach(v => { vals[v.name] = v.init; });
-      saved = { prog, vals, edited: false, world: null, player: null, mined: 0 };
+      saved = { parts, step: 1, passed: {}, prog, vals, edited: false, world: null, player: null, mined: 0 };
     }
     const S = saved;
     const varDef = name => sc.vars.find(v => v.name === name);
@@ -307,7 +308,7 @@
       (ui.solo ? '' : '<a class="back-link" href="#/">← All scenarios</a>') +
       '<div class="sc-title">' + (ui.solo ? '' : '<span class="sc-num">' + sc.num + '</span>') + '<div><h1>' + esc(sc.title) + '</h1></div></div>' +
       (sc.goal ? '<div class="goal"><p><b>Goal:</b> ' + esc(sc.goal) + '</p>' +
-        '<p>Play the game to figure out what each variable means. Press <b>Esc</b> to pause the game and edit the code.</p></div>' : '') +
+        '<p>Build the code one colored step at a time: fill in the <b>?</b>s, press <b>Test my code</b>, then go to the next step. Play the game to figure out what each variable means; <b>Esc</b> pauses it so you can edit.</p></div>' : '') +
       '</div>' +
       '<div class="dig-cols">' +
       '<div class="col">' +
@@ -331,10 +332,10 @@
       '</section>' +
       '</div>' +
       '<div class="col">' +
-      '<section class="panel p-code" id="code-panel"><div class="panel-head"><h2>Code</h2></div>' +
+      '<section class="panel p-code" id="code-panel"><div class="panel-head"><h2>Code</h2><ol class="steps" id="steps" aria-label="Steps"></ol></div>' +
       '<div class="code-wrap" id="code"></div>' +
       '<div class="code-actions"><button type="button" class="btn btn-run" id="test-btn">✓ Test my code</button>' +
-      '<button type="button" class="btn btn-ghost" id="undo-btn" hidden>↺ Clear my code</button></div>' +
+      '<button type="button" class="btn btn-ghost" id="undo-btn">↺ Clear this step</button></div>' +
       '<ul class="tests" id="tests" hidden></ul></section>' +
       '<section class="panel p-trace"><div class="panel-head"><h2>Step by step</h2></div>' +
       '<ol class="trace live" id="trace"></ol></section>' +
@@ -356,7 +357,7 @@
     let lastSig = '';
     function drawCode() {
       codeEl.innerHTML = TT.renderCode(S.prog, 'pseudo');
-      $('undo-btn').hidden = !S.edited;
+      drawSteps();
       lastSig = '';
     }
     function codeEdited() { S.edited = true; $('tests').hidden = true; setOut(null); lastOut = ''; drawCode(); }
@@ -374,7 +375,27 @@
       codeEdited();
     });
     codeEl.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('input.num')) e.target.blur(); });
-    $('undo-btn').addEventListener('click', () => { S.prog = TT.prepare(sc.code(B)); S.edited = false; $('tests').hidden = true; setOut(null); lastOut = ''; drawCode(); });
+    function buildProgram() { S.prog = TT.prepare(sc.program(B, S.parts, S.step)); }
+    function drawSteps() {
+      $('steps').innerHTML = sc.steps.map((st, i) => {
+        const n = i + 1;
+        const cls = n === S.step ? 'now' : S.passed[n] ? 'done' : n > S.step ? 'later' : '';
+        return '<li class="step step-' + n + ' ' + cls + '" title="Step ' + n + '">' + (S.passed[n] ? '✓' : n) + '</li>';
+      }).join('');
+    }
+    $('undo-btn').addEventListener('click', () => {
+      const key = sc.partOrder[S.step - 1];
+      S.parts[key] = sc.parts(B)[key];
+      buildProgram();
+      $('tests').hidden = true; setOut(null); lastOut = ''; drawCode();
+    });
+    $('tests').addEventListener('click', e => {
+      if (!e.target.closest('#next-step')) return;
+      S.step++;
+      buildProgram();
+      $('tests').hidden = true; setOut(null); lastOut = ''; drawCode();
+      ui.toast('Step ' + S.step + ' of ' + sc.steps.length, 'good');
+    });
 
     // Run the code with set values and compare what it does with what it should do.
     function runTests() {
@@ -383,14 +404,15 @@
       // gives a diamond 1 time in 5 passes, whichever number it checks for.
       const DIAMOND_TEXT = 'You found a diamond!';
       const rand = S.prog.refs.rand;
-      const lo = rand && rand.a.k === 'num' ? rand.a.v : 1, hi = rand && rand.b.k === 'num' ? rand.b.v : 5;
+      const lo = rand && rand.a.k === 'num' ? rand.a.v : 1, hi = rand && rand.b.k === 'num' ? rand.b.v : 1;
       const rolls = [];
       for (let v = Math.ceil(lo); v <= Math.floor(hi) && rolls.length < 100; v++) rolls.push(v);
       if (!rolls.length) rolls.push(1);
       const said = list => (list.length ? list.map(v => '"' + esc(v) + '"').join(' then ') : 'nothing');
       const howOften = f => (f === 1 ? 'every time' : f === 0 ? 'never' : '1 time in ' + Math.round(1 / f));
       const realRandom = TT.randInt;
-      const rows = sc.tests.map(t => {
+      const tests = sc.steps[S.step - 1].tests;
+      const rows = tests.map(t => {
         let diamonds = 0, why = null;
         try {
           for (const roll of rolls) {
@@ -401,11 +423,11 @@
             if (ctx.crashed) { why = ctx.crashed; break; }
             const got = (ctx.outputs || []).map(o => o.text);
             const rest = got.filter(x => x !== DIAMOND_TEXT);
-            if (rest.join('|') !== t.expect.join('|')) { why = 'Your code displayed ' + said(got) + ' when RANDOM gave ' + roll + '.'; break; }
+            if (rest.join('|') !== t.expect.join('|')) { why = 'Your code displayed ' + said(got) + (rand ? ' when RANDOM gave ' + roll : '') + '.'; break; }
             if (got.includes(DIAMOND_TEXT)) diamonds++;
           }
         } finally { TT.randInt = realRandom; }
-        if (!why && Math.abs(diamonds / rolls.length - t.diamond) > 1e-9) {
+        if (!why && Math.abs(diamonds / rolls.length - (t.diamond || 0)) > 1e-9) {
           why = 'Your code gave a diamond ' + diamonds + ' time' + (diamonds === 1 ? '' : 's') + ' out of ' + rolls.length + ' RANDOM results.';
         }
         return { t, ok: !why, why };
@@ -413,12 +435,22 @@
       const valsText = v => Object.keys(v).map(k => '<span class="t-var">' + k + '</span> ' + TT.valHTML(v[k])).join(', ');
       const passed = rows.filter(r => r.ok).length;
       box.innerHTML = rows.map(r => '<li class="' + (r.ok ? 'pass' : 'fail') + '"><span class="tick">' + (r.ok ? '✓' : '✗') + '</span><div>' +
-        '<b>' + esc(r.t.say) + '</b> → should display ' + said(r.t.expect) + (r.t.expect.length ? ', with a diamond ' + howOften(r.t.diamond) : '') +
+        '<b>' + esc(r.t.say) + '</b> → should display ' + said(r.t.expect) + (r.t.expect.length && r.t.diamond != null ? ', with a diamond ' + howOften(r.t.diamond) : '') +
         (r.ok ? '' : '<div class="why">' + esc(r.why) + '</div>') +
         '<div class="vals">' + valsText(r.t.vals) + '</div></div></li>').join('') +
-        '<li class="summary ' + (passed === rows.length ? 'pass' : '') + '">' + (passed === rows.length ? 'All ' + rows.length + ' tests pass. Goal complete!' : passed + ' of ' + rows.length + ' tests pass.') + '</li>';
+        summary(passed, rows.length);
       box.hidden = false;
-      if (passed === rows.length) ui.toast('All tests pass!', 'good');
+      if (passed === rows.length) {
+        S.passed[S.step] = true;
+        drawSteps();
+        ui.toast('Step ' + S.step + ' works!', 'good');
+      }
+    }
+    function summary(passed, total) {
+      const last = S.step === sc.steps.length;
+      if (passed < total) return '<li class="summary">' + passed + ' of ' + total + ' tests pass.</li>';
+      return '<li class="summary pass">Step ' + S.step + ' works: all ' + total + ' tests pass.' +
+        (last ? ' Goal complete!' : ' <button type="button" class="btn" id="next-step">Next step →</button>') + '</li>';
     }
     $('test-btn').addEventListener('click', runTests);
 

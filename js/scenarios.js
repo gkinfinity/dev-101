@@ -10,9 +10,9 @@
                (0 = IF, 1 = first ELSE IF, ..., 'else', or 'none').
 
    The Dig Site (kind: 'dig') is different: its program runs every frame
-   inside a 3D world (dig.js). Students fill in its blanks; the Test button
-   runs the finished code against `tests` once for every number RANDOM can
-   give (`diamond` is how often a diamond should appear), and challenges are checked each
+   inside a 3D world (dig.js). Students fill in its blanks one colored step at
+   a time; the Test button runs that step's `tests` once for every number
+   RANDOM can give (`diamond` is how often a diamond should appear), and challenges are checked each
    time a block is mined, with { block, distance, vals, refs }. */
 (function () {
   'use strict';
@@ -130,29 +130,67 @@
         { name: 'isDiamond', type: 'bool', init: false, role: 'calc' },
         { name: 'holdTime', type: 'num', init: 0, role: 'calc', unit: 'seconds' },
       ],
-      // Students fill in every ? and decide where NOT goes.
-      code: B => [
-        B.iff([
-          [B.blankLogic(B.maybeNot(B.blankCmp()), B.maybeNot(B.blankVar()), 'logic'), [
-            B.iff([[B.maybeNot(B.blankCmp()), [
-              B.out('Block mined!', 'mine'),
-              B.iff([[B.blankLogic(B.maybeNot(B.blankVar()), B.maybeNot({ k: 'cmp', a: B.random(1, 5, 'rand'), op: null, b: B.blankNum() }), 'gemLogic'),
-                [B.out('You found a diamond!', 'gem')], 'Diamond from diamond ore, OR a 1/5 bonus on any block']], null),
-            ], 'Mine the block once it has been held long enough']], null),
-          ], 'The block must be close enough AND bedrock cannot be mined'],
-          [B.maybeNot(B.blankVar()), [B.out('Bedrock cannot be mined.', 'bedrock')], 'Check for specific block type'],
-        ], [B.out('Too far away!', 'far')], { main: true }),
-      ],
-      goal: 'Finish the code so every block can be mined except bedrock. Mining a block should take time. Diamond ore always gives a diamond, and any other block has a bonus 1 in 5 chance.',
-      // The Test button runs the code with these values and compares what it does.
-      tests: [
-        { say: 'Dirt in reach, held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 1.5, digTime: 1 }, expect: ['Block mined!'], diamond: 1 / 5 },
-        { say: 'Diamond ore in reach, held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: true, holdTime: 1.5, digTime: 1 }, expect: ['Block mined!'], diamond: 1 },
-        { say: 'A block in reach, not held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 0.4, digTime: 1 }, expect: [], diamond: 0 },
-        { say: 'A block too far away', vals: { distance: 7, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 3, digTime: 1 }, expect: ['Too far away!'], diamond: 0 },
-        { say: 'Bedrock in reach', vals: { distance: 2, reach: 4.5, isBedrock: true, isDiamond: false, holdTime: 3, digTime: 1 }, expect: ['Bedrock cannot be mined.'], diamond: 0 },
-        { say: 'A far block with a long reach', vals: { distance: 6, reach: 8, isBedrock: false, isDiamond: false, holdTime: 2.5, digTime: 2 }, expect: ['Block mined!'], diamond: 1 / 5 },
-        { say: 'Diamond ore not held long enough', vals: { distance: 6, reach: 8, isBedrock: false, isDiamond: true, holdTime: 1.5, digTime: 2 }, expect: [], diamond: 0 },
+      // The code is built in four colored steps, easiest first. parts(B) makes the
+      // blanks once, so answers carry over; program(B, p, step) puts together the
+      // code for one step. The last number in each IF branch is its step, which
+      // sets its color and badge. Each step has its own tests.
+      parts: B => ({
+        bedrock: B.maybeNot(B.blankVar()),
+        timeOk: B.maybeNot(B.blankCmp()),
+        reachOk: B.blankLogic(B.maybeNot(B.blankCmp()), B.maybeNot(B.blankVar()), 'logic'),
+        diamond: B.blankLogic(B.maybeNot(B.blankVar()), B.maybeNot({ k: 'cmp', a: B.random(1, 5, 'rand'), op: null, b: B.blankNum() }), 'gemLogic'),
+      }),
+      partOrder: ['bedrock', 'timeOk', 'reachOk', 'diamond'],
+      program: (B, p, step) => {
+        const NOTE = {
+          bedrock: 'Check for specific block type',
+          timeOk: 'Mine the block once it has been held long enough',
+          reachOk: 'The block must be close enough AND bedrock cannot be mined',
+          diamond: 'Diamond from diamond ore, OR a 1/5 bonus on any block',
+        };
+        const mined = [B.out('Block mined!', 'mine')];
+        const bedrockMsg = [B.out('Bedrock cannot be mined.', 'bedrock')];
+        if (step === 1) return [B.iff([[p.bedrock, bedrockMsg, NOTE.bedrock, 1]], mined, { main: true })];
+        if (step === 2) return [B.iff([[p.bedrock, bedrockMsg, NOTE.bedrock, 1], [p.timeOk, mined, NOTE.timeOk, 2]], null, { main: true })];
+        if (step >= 4) mined.push(B.iff([[p.diamond, [B.out('You found a diamond!', 'gem')], NOTE.diamond, 4]], null));
+        return [B.iff([
+          [p.reachOk, [B.iff([[p.timeOk, mined, NOTE.timeOk, 2]], null)], NOTE.reachOk, 3],
+          [p.bedrock, bedrockMsg, NOTE.bedrock, 1],
+        ], [B.out('Too far away!', 'far')], { main: true })];
+      },
+      // The whole program, for anything that wants it in one piece.
+      code(B) { return this.program(B, this.parts(B), 4); },
+      goal: 'Make every block minable except bedrock. Mining should take time, and diamonds can drop.',
+      // diamond: how often a diamond should appear (the test runs once for every number RANDOM can give)
+      steps: [
+        { tests: [
+          { say: 'Dirt', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 0, digTime: 1 }, expect: ['Block mined!'] },
+          { say: 'Bedrock', vals: { distance: 2, reach: 4.5, isBedrock: true, isDiamond: false, holdTime: 0, digTime: 1 }, expect: ['Bedrock cannot be mined.'] },
+          { say: 'Diamond ore', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: true, holdTime: 0, digTime: 1 }, expect: ['Block mined!'] },
+        ] },
+        { tests: [
+          { say: 'Dirt, held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 1.5, digTime: 1 }, expect: ['Block mined!'] },
+          { say: 'Dirt, not held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 0.4, digTime: 1 }, expect: [] },
+          { say: 'Bedrock, held long enough', vals: { distance: 2, reach: 4.5, isBedrock: true, isDiamond: false, holdTime: 3, digTime: 1 }, expect: ['Bedrock cannot be mined.'] },
+          { say: 'A slow block, held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 2.5, digTime: 2 }, expect: ['Block mined!'] },
+          { say: 'A slow block, not held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 1.5, digTime: 2 }, expect: [] },
+        ] },
+        { tests: [
+          { say: 'A block in reach, held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 1.5, digTime: 1 }, expect: ['Block mined!'] },
+          { say: 'A block in reach, not held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 0.4, digTime: 1 }, expect: [] },
+          { say: 'A block too far away', vals: { distance: 7, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 3, digTime: 1 }, expect: ['Too far away!'] },
+          { say: 'Bedrock in reach', vals: { distance: 2, reach: 4.5, isBedrock: true, isDiamond: false, holdTime: 3, digTime: 1 }, expect: ['Bedrock cannot be mined.'] },
+          { say: 'Bedrock too far away', vals: { distance: 7, reach: 4.5, isBedrock: true, isDiamond: false, holdTime: 3, digTime: 1 }, expect: ['Bedrock cannot be mined.'] },
+          { say: 'A far block with a long reach', vals: { distance: 6, reach: 8, isBedrock: false, isDiamond: false, holdTime: 2.5, digTime: 2 }, expect: ['Block mined!'] },
+        ] },
+        { tests: [
+          { say: 'Dirt in reach, held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 1.5, digTime: 1 }, expect: ['Block mined!'], diamond: 1 / 5 },
+          { say: 'Diamond ore in reach, held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: true, holdTime: 1.5, digTime: 1 }, expect: ['Block mined!'], diamond: 1 },
+          { say: 'Diamond ore, not held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: true, holdTime: 0.4, digTime: 1 }, expect: [], diamond: 0 },
+          { say: 'A block too far away', vals: { distance: 7, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 3, digTime: 1 }, expect: ['Too far away!'], diamond: 0 },
+          { say: 'Bedrock in reach', vals: { distance: 2, reach: 4.5, isBedrock: true, isDiamond: false, holdTime: 3, digTime: 1 }, expect: ['Bedrock cannot be mined.'], diamond: 0 },
+          { say: 'A far block with a long reach', vals: { distance: 6, reach: 8, isBedrock: false, isDiamond: false, holdTime: 2.5, digTime: 2 }, expect: ['Block mined!'], diamond: 1 / 5 },
+        ] },
       ],
       challenges: [
         { text: 'Mine a block.', check: e => true },

@@ -46,10 +46,11 @@
     random: (a, b, ref) => ({ k: 'rand', a: wrap(a), b: wrap(b), ref }),
     set: (name, expr, o) => Object.assign({ k: 'set', name, expr: wrap(expr) }, o),
     out: (text, fx, o) => Object.assign({ k: 'out', text, fx }, o),
-    // branches: [[cond, [body], comment?], ...]   elseBody: [body] or null
-    // A comment is shown on its own line above that IF or ELSE IF.
+    // branches: [[cond, [body], comment?, step?], ...]   elseBody: [body] or null
+    // A comment is shown on its own line above that IF or ELSE IF; step numbers
+    // and colors it as part of that step.
     iff: (branches, elseBody, o) =>
-      Object.assign({ k: 'if', branches: branches.map(([cond, body, comment]) => ({ cond, body, comment })), else: elseBody || null }, o),
+      Object.assign({ k: 'if', branches: branches.map(([cond, body, comment, step]) => ({ cond, body, comment, step })), else: elseBody || null }, o),
   };
 
   /* Give every statement and expression an id, and collect named parts. */

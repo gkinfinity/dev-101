@@ -157,7 +157,8 @@
     }
     let h = '';
     s.branches.forEach((b, i) => {
-      const prob = b.comment ? 'prob prob-' + (++problemNo) : '';
+      if (b.comment) problemNo = b.step || problemNo + 1;
+      const prob = b.comment ? 'prob prob-' + problemNo : '';
       if (b.comment) {
         commentLines(b.comment, ind).forEach((text, k) => {
           h += line('', ind, (k ? '' : '<span class="prob-tag">' + problemNo + '</span>') + '<span class="t-note">// ' + esc(text) + '</span>', isOff, 'ln-comment ' + prob);
