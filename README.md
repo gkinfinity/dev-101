@@ -1,9 +1,9 @@
-# Turner’s Teach Tree
+# Game Dev 101
 
 Pseudocode practice: variables, math, comparisons, AND, OR, NOT and
 IF / ELSE IF / ELSE.
 
-Live site: https://gkinfinity.github.io/teach-tree/
+Live site: https://gkinfinity.github.io/dev-101/
 
 | page | contents |
 |---|---|

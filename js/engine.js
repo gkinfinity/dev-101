@@ -1,4 +1,4 @@
-/* Turner’s Teach Tree engine
+/* Game Dev 101 engine
    A program is a list of plain objects (statements and expressions). The engine
    can print it as text, and run it one step at a time so a page can show the
    computer "thinking": every condition is shown being worked out, piece by piece. */

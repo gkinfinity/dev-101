@@ -1,4 +1,4 @@
-/* Turner’s Teach Tree pages: home, the scenarios, the warm-up and the cheat sheet. */
+/* Game Dev 101 pages: home, the scenarios, the warm-up and the cheat sheet. */
 (function () {
   'use strict';
   const TT = window.TT;
@@ -11,12 +11,12 @@
   const store = {
     get(key, fallback) {
       try {
-        const raw = localStorage.getItem('teachtree:' + key);
+        const raw = localStorage.getItem('gamedev101:' + key);
         return raw == null ? fallback : JSON.parse(raw);
       } catch (e) { return fallback; }
     },
     set(key, value) {
-      try { localStorage.setItem('teachtree:' + key, JSON.stringify(value)); } catch (e) { /* private window */ }
+      try { localStorage.setItem('gamedev101:' + key, JSON.stringify(value)); } catch (e) { /* private window */ }
     },
   };
   Object.assign(TT.settings, store.get('settings', {}));
@@ -79,7 +79,7 @@
     const sc = TT.scenarios.find(s => s.id === id);
     if (TT.rain) TT.rain.set(!(sc && sc.kind === 'dig'));
     if (sc && sc.kind === 'dig') {
-      document.title = sc.title + ' — Turner’s Teach Tree';
+      document.title = sc.title + ' — Game Dev 101';
       cleanup = TT.digPage(sc, app, Object.assign({ prev: TT.scenarios[sc.num - 2] }, TT.ui));
     } else if (sc) scenarioPage(sc);
     else if (id === 'warmup') warmupPage();
@@ -92,7 +92,7 @@
   /* Home                                                                   */
   /* ===================================================================== */
   function homePage() {
-    document.title = 'Turner’s Teach Tree';
+    document.title = 'Game Dev 101';
     const cards = TT.scenarios.map(sc => {
       const prog = TT.prepare(sc.code(B));
       const done = doneCount(sc);
@@ -116,7 +116,7 @@
   const pages = {};  // each scenario keeps its memory and code while the tab is open
 
   function scenarioPage(sc) {
-    document.title = sc.title + ' — Turner’s Teach Tree';
+    document.title = sc.title + ' — Game Dev 101';
     const P = pages[sc.id] || (pages[sc.id] = {
       prog: TT.prepare(sc.code(B)), vals: initVals(sc), fx: null, lastOut: null, edited: false, marks: [],
     });
@@ -639,7 +639,7 @@
   }
 
   function warmupPage() {
-    document.title = 'Logic Warm-Up — Turner’s Teach Tree';
+    document.title = 'Warm-Up — Game Dev 101';
     const W = { a: true, b: false, x: 7, op: '>', y: 3, score: 10, add: 5, busy: false, streak: 0, right: 0, tries: 0, best: store.get('best', 0) };
     const opOptions = TT.OPS.cmp.map(o => '<option value="' + esc(o) + '"' + (o === W.op ? ' selected' : '') + '>' + esc(TT.sym(o)) + '</option>').join('');
 
@@ -804,7 +804,7 @@
   /* Cheat sheet                                                            */
   /* ===================================================================== */
   function cheatPage() {
-    document.title = 'Cheat Sheet — Turner’s Teach Tree';
+    document.title = 'Cheat Sheet — Game Dev 101';
     const a = esc(TT.settings.assign);
     const v = n => '<span class="t-var">' + n + '</span>';
     const k = w => '<span class="t-ctl">' + w + '</span>';
