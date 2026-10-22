@@ -555,6 +555,9 @@ select.op option { color: #d7ffe0; background: #031009; }
 .step-done .modal-foot { justify-content: center; gap: 10px; }
 .big-check { width: 64px; height: 64px; margin: 4px auto 0; border-radius: 50%; display: grid; place-items: center; font-size: 36px; font-weight: 900;
   color: #000; background: rgb(var(--pc)); box-shadow: 0 0 24px rgb(var(--pc)); animation: tt-popin .45s cubic-bezier(.3, 1.6, .5, 1) both; }
+.tests .tip { border-color: rgba(255, 194, 71, .5); background: rgba(255, 194, 71, .07); color: var(--ink); font-size: 15px; line-height: 1.5; }
+.tip-icon { font-size: 20px; line-height: 1.2; }
+.tip-hint { margin-top: 6px; color: #ffd27a; }
 .tests .summary .btn { margin-left: 10px; min-height: 32px; padding: 4px 12px; background: #001a0a; color: var(--neon); border-color: #001a0a; }
 .prob-tag { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-right: 8px; border-radius: 5px;
   background: rgb(var(--pc)); color: #000; font: 900 12px var(--mono); vertical-align: 1px; }

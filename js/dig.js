@@ -448,34 +448,36 @@
             if (ctx.crashed) { why = ctx.crashed; break; }
             const got = (ctx.outputs || []).map(o => o.text);
             const rest = got.filter(x => x !== DIAMOND_TEXT);
-            if (rest.join('|') !== t.expect.join('|')) { why = 'Your code displayed ' + said(got) + (rand ? ' when RANDOM gave ' + roll : '') + '.'; break; }
+            if (rest.join('|') !== t.expect.join('|')) {
+              // a quoted message that already ends in . or ! needs no extra period
+              const stop = list => (list.length && /[.!?]$/.test(list[list.length - 1]) && !rand ? ' ' : '. ');
+              why = 'For ' + t.say + ', your code displayed ' + said(got) + (rand ? ' (when RANDOM gave ' + roll + ')' : '') + stop(got) +
+                (t.expect.length ? 'It should display ' + said(t.expect) + stop(t.expect).trim() : 'It should not display anything yet.');
+              break;
+            }
             if (got.includes(DIAMOND_TEXT)) diamonds++;
           }
         } finally { TT.randInt = realRandom; }
         if (!why && Math.abs(diamonds / rolls.length - (t.diamond || 0)) > 1e-9) {
-          why = 'Your code gave a diamond ' + diamonds + ' time' + (diamonds === 1 ? '' : 's') + ' out of ' + rolls.length + ' RANDOM results.';
+          why = 'For ' + t.say + ', a diamond should drop ' + howOften(t.diamond) + ', but your code drops one ' + diamonds + ' time' + (diamonds === 1 ? '' : 's') + ' out of ' + rolls.length + '.';
         }
         return { t, ok: !why, why };
       });
-      const valsText = v => Object.keys(v).map(k => '<span class="t-var">' + k + '</span> ' + TT.valHTML(v[k])).join(', ');
-      const passed = rows.filter(r => r.ok).length;
-      box.innerHTML = rows.map(r => '<li class="' + (r.ok ? 'pass' : 'fail') + '"><span class="tick">' + (r.ok ? '✓' : '✗') + '</span><div>' +
-        '<b>' + esc(r.t.say) + '</b> → should display ' + said(r.t.expect) + (r.t.expect.length && r.t.diamond != null ? ', with a diamond ' + howOften(r.t.diamond) : '') +
-        (r.ok ? '' : '<div class="why">' + esc(r.why) + '</div>') +
-        '<div class="vals">' + valsText(r.t.vals) + '</div></div></li>').join('') +
-        summary(passed, rows.length);
+      // No test jargon for students: a pass is just "correct", a miss gets one tip.
+      const miss = rows.find(r => !r.ok);
+      if (!miss) {
+        box.innerHTML = '<li class="summary pass">✓ Step ' + S.step + ' is correct!' +
+          (S.step < sc.steps.length ? ' <button type="button" class="btn" id="next-step">Next step →</button>' : ' Your code is finished.') + '</li>';
+      } else {
+        box.innerHTML = '<li class="tip"><span class="tip-icon" aria-hidden="true">💡</span><div><b>Not quite yet.</b> ' + esc(miss.why) +
+          '<div class="tip-hint"><b>Tip:</b> ' + esc(sc.steps[S.step - 1].tip) + '</div></div></li>';
+      }
       box.hidden = false;
-      if (passed === rows.length) {
+      if (!miss) {
         S.passed[S.step] = true;
         drawSteps();
         confirmStep();
       }
-    }
-    function summary(passed, total) {
-      const last = S.step === sc.steps.length;
-      if (passed < total) return '<li class="summary">' + passed + ' of ' + total + ' tests pass.</li>';
-      return '<li class="summary pass">Step ' + S.step + ' works: all ' + total + ' tests pass.' +
-        (last ? ' Goal complete!' : ' <button type="button" class="btn" id="next-step">Next step →</button>') + '</li>';
     }
     $('test-btn').addEventListener('click', runTests);
 
