@@ -719,7 +719,8 @@
       let condValue = null;
       if (hit) {
         const b = world.get(hit.x, hit.y, hit.z);
-        V.distance = round2(Math.hypot(hit.x + 0.5 - eye[0], hit.y + 0.5 - eye[1], hit.z + 0.5 - eye[2]));
+        // From your eyes to the exact spot the crosshair touches, so it changes as you aim.
+        V.distance = round2(hit.t);
         V.isBedrock = b === BEDROCK;
         const key = hit.x + ',' + hit.y + ',' + hit.z;
         if (key !== lastTargetKey) {

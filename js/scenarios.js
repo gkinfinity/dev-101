@@ -135,7 +135,7 @@
             B.iff([[B.maybeNot(B.blankCmp()), [B.out('Block mined!', 'mine')],
               'Mine the block once it has been held long enough']], null),
           ], 'The block must be close enough AND bedrock cannot be mined'],
-          [B.maybeNot(B.blankVar()), [B.out('Bedrock cannot be mined.', 'bedrock')], 'Is the block bedrock?'],
+          [B.maybeNot(B.blankVar()), [B.out('Bedrock cannot be mined.', 'bedrock')], 'Check for specific block type'],
         ], [B.out('Too far away!', 'far')], { main: true }),
       ],
       goal: 'Finish the code so every block can be mined except bedrock. Mining a block should take time.',
