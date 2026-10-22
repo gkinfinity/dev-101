@@ -146,7 +146,7 @@
           bedrock: 'Check for specific block type',
           timeOk: 'Mine the block once it has been held long enough',
           reachOk: 'The block must be close enough AND bedrock cannot be mined',
-          diamond: 'Diamond from diamond ore, OR a 1/5 chance of diamond',
+          diamond: 'Diamond from diamond ore, OR a 2/7 chance of diamond',
         };
         const mined = [B.out('Block mined!', 'mine')];
         const bedrockMsg = [B.out('Bedrock cannot be mined.', 'bedrock')];
@@ -183,13 +183,13 @@
           { say: 'bedrock too far away', vals: { distance: 7, reach: 4.5, isBedrock: true, isDiamond: false, holdTime: 3, digTime: 1 }, expect: ['Bedrock cannot be mined.'] },
           { say: 'a far block with a long reach', vals: { distance: 6, reach: 8, isBedrock: false, isDiamond: false, holdTime: 2.5, digTime: 2 }, expect: ['Block mined!'] },
         ] },
-        { tip: "Read the comment above the line again, one part at a time. Which numbers could RANDOM give, and how many of them should give a diamond?", done: 'Diamond ore always gives a diamond, and any block has a 1 in 5 chance of diamond. Your code is finished!', tests: [
-          { say: 'dirt in reach held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 1.5, digTime: 1 }, expect: ['Block mined!'], diamond: 1 / 5 },
+        { tip: "Read the comment above the line again, one part at a time. Which numbers could RANDOM give, and how many of them should give a diamond?", done: 'Diamond ore always gives a diamond, and any block has a 2 in 7 chance of diamond. Your code is finished!', tests: [
+          { say: 'dirt in reach held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 1.5, digTime: 1 }, expect: ['Block mined!'], diamond: 2 / 7 },
           { say: 'diamond ore in reach held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: true, holdTime: 1.5, digTime: 1 }, expect: ['Block mined!'], diamond: 1 },
           { say: 'diamond ore not held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: true, holdTime: 0.4, digTime: 1 }, expect: [], diamond: 0 },
           { say: 'a block too far away', vals: { distance: 7, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 3, digTime: 1 }, expect: ['Too far away!'], diamond: 0 },
           { say: 'bedrock in reach', vals: { distance: 2, reach: 4.5, isBedrock: true, isDiamond: false, holdTime: 3, digTime: 1 }, expect: ['Bedrock cannot be mined.'], diamond: 0 },
-          { say: 'a far block with a long reach', vals: { distance: 6, reach: 8, isBedrock: false, isDiamond: false, holdTime: 2.5, digTime: 2 }, expect: ['Block mined!'], diamond: 1 / 5 },
+          { say: 'a far block with a long reach', vals: { distance: 6, reach: 8, isBedrock: false, isDiamond: false, holdTime: 2.5, digTime: 2 }, expect: ['Block mined!'], diamond: 2 / 7 },
         ] },
       ],
       // step: the challenge opens once that step's code is on screen.

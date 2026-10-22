@@ -434,7 +434,16 @@
       for (let v = Math.ceil(lo); v <= Math.floor(hi) && rolls.length < 1000; v++) rolls.push(v);
       if (!rolls.length) rolls.push(1);
       const said = list => (list.length ? list.map(v => '"' + esc(v) + '"').join(' then ') : 'nothing');
-      const howOften = f => (f === 1 ? 'every time' : f === 0 ? 'never' : '1 time in ' + Math.round(1 / f));
+      // 2/7 reads as "2 times in 7"
+      const howOften = f => {
+        if (f === 1) return 'every time';
+        if (f === 0) return 'never';
+        for (let den = 2; den <= 100; den++) {
+          const num = Math.round(f * den);
+          if (Math.abs(num / den - f) < 1e-9) return num + (num === 1 ? ' time' : ' times') + ' in ' + den;
+        }
+        return Math.round(f * 100) + '% of the time';
+      };
       const realRandom = TT.randInt;
       const tests = sc.steps[S.step - 1].tests;
       const rows = tests.map(t => {
