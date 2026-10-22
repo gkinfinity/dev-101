@@ -320,8 +320,8 @@
 
     app.innerHTML =
       '<div class="sc-head">' +
-      '<a class="back-link" href="#/">← All scenarios</a>' +
-      '<div class="sc-title"><span class="sc-num">' + sc.num + '</span><div><h1>' + esc(sc.title) + '</h1>' +
+      (ui.solo ? '' : '<a class="back-link" href="#/">← All scenarios</a>') +
+      '<div class="sc-title">' + (ui.solo ? '' : '<span class="sc-num">' + sc.num + '</span>') + '<div><h1>' + esc(sc.title) + '</h1>' +
       '<div class="chips">' + ui.chips(sc.concepts) + '</div></div></div>' +
       '</div>' +
       '<div class="dig-cols">' +
@@ -358,8 +358,8 @@
       '<section class="panel p-trace"><div class="panel-head"><h2>This frame</h2></div>' +
       '<ol class="trace" id="trace"></ol></section>' +
       '</div></div>' +
-      '<nav class="pager">' + (ui.prev ? '<a class="btn btn-ghost" href="#/' + ui.prev.id + '">← ' + esc(ui.prev.title) + '</a>' : '<span></span>') +
-      '<a class="btn btn-ghost" href="#/">All scenarios</a></nav>';
+      (ui.solo ? '' : '<nav class="pager">' + (ui.prev ? '<a class="btn btn-ghost" href="#/' + ui.prev.id + '">← ' + esc(ui.prev.title) + '</a>' : '<span></span>') +
+      '<a class="btn btn-ghost" href="#/">All scenarios</a></nav>');
 
     const $ = id => document.getElementById(id);
     const canvas = $('dig-canvas'), worldEl = $('world'), codeEl = $('code'), memEl = $('mem'), traceEl = $('trace');

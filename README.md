@@ -5,11 +5,9 @@ IF / ELSE IF / ELSE.
 
 Live site: https://gkinfinity.github.io/dev-101/
 
-| page | contents |
-|---|---|
-| Scenarios | The Locked Door, Power-Up Shield, The Item Shop, The Dig Site (3D) |
-| Warm-Up | AND / OR / NOT, comparisons, assignment, TRUE-or-FALSE quiz |
-| Cheat Sheet | symbols and keywords |
+The site currently shows only The Dig Site, a 3D block world. The other
+pages (three 2D scenarios, a warm-up and a cheat sheet) are still in the code;
+set `ONLY` to `null` in `js/app.js` to bring them back.
 
 Dig Site controls: WASD move, mouse look, hold click dig, Space jump, Esc exit.
 Arrow keys look and F digs without a mouse.

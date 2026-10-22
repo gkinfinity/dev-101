@@ -88,6 +88,7 @@ button:disabled { cursor: not-allowed; }
 .nav a.active { color: #001a0a; background: var(--neon); box-shadow: 0 0 16px rgba(0, 255, 106, .5); }
 .icon-btn { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line-2); background: transparent; color: var(--neon); font-size: 20px; line-height: 1; display: grid; place-items: center; }
 .icon-btn:hover { background: rgba(0, 255, 106, .1); box-shadow: var(--glow); }
+.nav[hidden] + .icon-btn { margin-left: auto; }
 
 #app { padding-top: 22px; padding-bottom: 36px; min-height: 70vh; }
 

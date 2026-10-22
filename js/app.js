@@ -68,10 +68,15 @@
   const doneCount = sc => Object.keys(progress[sc.id] || {}).length;
 
   /* ---------- routing ---------- */
+  // Only this page is shown; the other pages stay in the code, hidden.
+  // Set ONLY to null to bring back the home page, warm-up and cheat sheet.
+  const ONLY = 'dig';
+  document.querySelector('.nav').hidden = !!ONLY;
+
   let cleanup = null;
   function route() {
     if (cleanup) { cleanup(); cleanup = null; }
-    const id = location.hash.replace(/^#\/?/, '');
+    const id = ONLY || location.hash.replace(/^#\/?/, '');
     document.querySelectorAll('.nav a').forEach(a => {
       const href = a.getAttribute('href').replace(/^#\/?/, '');
       a.classList.toggle('active', href === id || (!href && TT.scenarios.some(s => s.id === id)));
@@ -79,8 +84,8 @@
     const sc = TT.scenarios.find(s => s.id === id);
     if (TT.rain) TT.rain.set(!(sc && sc.kind === 'dig'));
     if (sc && sc.kind === 'dig') {
-      document.title = sc.title + ' — Game Dev 101';
-      cleanup = TT.digPage(sc, app, Object.assign({ prev: TT.scenarios[sc.num - 2] }, TT.ui));
+      document.title = ONLY ? 'Game Dev 101' : sc.title + ' — Game Dev 101';
+      cleanup = TT.digPage(sc, app, Object.assign({ prev: TT.scenarios[sc.num - 2], solo: !!ONLY }, TT.ui));
     } else if (sc) scenarioPage(sc);
     else if (id === 'warmup') warmupPage();
     else if (id === 'cheatsheet') cheatPage();
