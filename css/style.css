@@ -344,9 +344,9 @@ select.op option { color: #d7ffe0; background: #031009; }
 
 /* ---------- pseudocode ---------- */
 .pseudo { counter-reset: ln; font-family: var(--mono); font-size: 15px; background: #000; border: 1px solid var(--line); border-radius: 8px; padding: 8px 0; box-shadow: inset 0 0 30px rgba(0, 255, 106, .05); }
-.ln { counter-increment: ln; display: flex; align-items: baseline; min-height: 36px; padding: 3px 14px 3px 0; border-radius: 5px; margin: 0 6px; }
+.ln { counter-increment: ln; display: flex; align-items: baseline; min-height: 36px; padding: 3px 8px 3px 0; border-radius: 5px; margin: 0 6px; }
 .ln::before { content: counter(ln); width: 28px; flex: none; text-align: right; padding-right: 12px; color: #2f6b45; font-size: 13px; }
-.ln-code { display: block; flex: 1; min-width: 0; padding-left: calc(var(--ind) * 4ch); line-height: 2; color: var(--ink); }
+.ln-code { display: block; flex: 1; min-width: 0; padding-left: calc(var(--ind) * 3ch); line-height: 2; color: var(--ink); }
 .ln-code select, .ln-code input, .ln-code button { vertical-align: baseline; }
 .ln.now { background: rgba(94, 242, 255, .1); outline-offset: 0; }
 .ln.is-true:not(.now) { background: rgba(61, 255, 122, .08); }
@@ -355,7 +355,7 @@ select.op option { color: #d7ffe0; background: #031009; }
 .ps-sel:not(.ps-log) { color: var(--t-op); }
 .ps-sel:hover { border-style: solid; border-color: var(--focus); }
 .ps-num { border: 1px dashed var(--line-2); border-radius: 5px; height: 28px; font-size: 16px; background: #031009; color: var(--t-num); }
-.ps-not { background: #031009; border: 1px dashed var(--line-2); color: var(--t-log); padding: 0 5px; min-height: 28px; font-family: var(--mono); font-size: 15px; }
+.ps-not { background: #031009; border: 1px dashed var(--line-2); color: var(--t-log); padding: 0 3px; min-height: 28px; font-family: var(--mono); font-size: 15px; }
 .ps-not.off { text-decoration: line-through; color: #3f5c49; }
 .ps-not:hover { border-style: solid; border-color: var(--focus); }
 .pseudo .opt-track { background: #2a3a30; }
@@ -488,9 +488,9 @@ select.op option { color: #d7ffe0; background: #031009; }
 
 /* ---------- the Dig Site ---------- */
 /* The variables sit inside the 3D view so they stay on screen while playing. */
-.w-vars { position: absolute; top: 10px; right: 10px; z-index: 3; width: 214px; display: grid; gap: 4px; padding: 8px 10px;
+.w-vars { position: absolute; top: 10px; right: 10px; z-index: 3; width: 214px; display: grid; gap: 2px; padding: 7px 10px;
   border-radius: 8px; border: 1px solid var(--line-2); background: rgba(0, 0, 0, .72); font-family: var(--mono); font-size: 13px; user-select: auto; }
-.wv-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 24px; }
+.wv-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 22px; }
 .wv-name { color: var(--t-var); font-weight: 800; }
 .wv-val .vb { font-size: 15px; }
 .w-vars .unit { margin-left: 4px; }
@@ -529,12 +529,15 @@ select.op option { color: #d7ffe0; background: #031009; }
 .not-btn.maybe.off { text-decoration: none; color: var(--t-log); opacity: .35; }
 .not-btn.maybe.off:hover { opacity: .8; }
 .t-blank { color: #ffc247; font-weight: 800; }
+.t-fn { color: var(--cyan); font-weight: 800; }
+.ps-num.empty { border: 1px solid #ffc247; background: rgba(255, 194, 71, .1); }
+.ps-num::placeholder { color: #ffc247; opacity: 1; }
 .p-questions { margin-top: 16px; display: grid; gap: 14px; }
 .p-questions .panel-head { margin-bottom: 0; }
 .question { display: grid; gap: 6px; font-size: 16px; color: var(--ink); }
 .question textarea { width: 100%; min-height: 64px; resize: vertical; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line-2); background: #000; color: var(--ink); font: 16px/1.5 var(--sans); }
 .question textarea:focus { outline: none; border-color: var(--neon); box-shadow: 0 0 0 1px var(--neon), 0 0 14px rgba(0, 255, 106, .25); }
-.dig-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.dig-cols { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 16px; align-items: start; }
 .p-world { padding: 10px; }
 .world { position: relative; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: #000; border: 1px solid var(--line-2); box-shadow: 0 0 30px rgba(0, 255, 106, .15); user-select: none; }
 .world canvas { display: block; width: 100%; height: 100%; outline: none; cursor: crosshair; }
@@ -620,6 +623,16 @@ select.op option { color: #d7ffe0; background: #031009; }
 }
 
 /* ---------- smaller screens ---------- */
+/* Small laptops and Chromebooks: tighter code and variables so nothing wraps or hides the world. */
+@media (max-width: 1320px) {
+  .pseudo, .ps-sel, .ps-not, .ps-num { font-size: 14px; }
+  .w-vars { width: 192px; gap: 1px; padding: 5px 8px; font-size: 12px; }
+  .wv-row { min-height: 19px; }
+  .wv-val .vb { font-size: 13px; }
+  .wv-num { height: 20px; width: 58px; font-size: 13px; }
+  .w-vars input[type=range] { height: 14px; }
+  .world .w-overlay { padding-right: 214px; }
+}
 @media (max-width: 1080px) {
   .dig-cols { grid-template-columns: 1fr; }
 }

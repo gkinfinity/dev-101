@@ -41,6 +41,9 @@
     blankCmp: ref => ({ k: 'cmp', a: { k: 'var', name: null, blank: true }, op: null, b: { k: 'var', name: null, blank: true }, blank: true, ref }),
     blankLogic: (a, b, ref) => ({ k: 'logic', op: null, a, b, blank: true, ref }),
     maybeNot: (x, ref) => ({ k: 'not', x, on: false, blank: true, ref }),
+    blankNum: ref => ({ k: 'num', v: null, blank: true, ref }),
+    // RANDOM(a, b): a whole number from a to b, both included.
+    random: (a, b, ref) => ({ k: 'rand', a: wrap(a), b: wrap(b), ref }),
     set: (name, expr, o) => Object.assign({ k: 'set', name, expr: wrap(expr) }, o),
     out: (text, fx, o) => Object.assign({ k: 'out', text, fx }, o),
     // branches: [[cond, [body], comment?], ...]   elseBody: [body] or null
@@ -109,9 +112,13 @@
   class Crash extends Error {}
   TT.Crash = Crash;
 
+  // Tests can swap this out to make RANDOM give a known number.
+  TT.randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+
   function apply(e, a, b) {
     switch (e.k) {
       case 'not': return !a;
+      case 'rand': return TT.randInt(Math.ceil(a), Math.floor(b));
       case 'logic': return e.op === 'AND' ? a && b : a || b;
       case 'cmp':
         switch (e.op) {
@@ -172,6 +179,7 @@
   TT.hasBlank = function (e) {
     if (!e) return false;
     if (e.k === 'var' && !e.name) return true;
+    if (e.k === 'num' && e.v == null) return true;
     if ((e.k === 'cmp' || e.k === 'logic') && !e.op) return true;
     return TT.hasBlank(e.a) || TT.hasBlank(e.b) || TT.hasBlank(e.x);
   };
@@ -192,6 +200,11 @@
         case 'str': return 'string';
         case 'var': return typeof vars[e.name];
         case 'math': return 'number';
+        case 'rand': {
+          [e.a, e.b].forEach(side => { if (type(side) !== 'number') throw 'RANDOM needs two numbers.'; });
+          if (e.a.k === 'num' && e.b.k === 'num' && e.a.v > e.b.v) throw 'RANDOM needs the smaller number first.';
+          return 'number';
+        }
         case 'not': {
           const x = type(e.x);
           if (x !== 'boolean') throw 'NOT only works on TRUE or FALSE, but ' + name(e.x) + ' is ' + kind(x) + '.';
@@ -299,6 +312,7 @@
       case 'num': case 'bool': case 'str': return TT.valHTML(e.v);
       case 'var': return e.name ? '<span class="t-var">' + esc(e.name) + '</span>' : '<span class="t-blank">?</span>';
       case 'not': return '<span class="t-log">NOT</span> ' + paren(e.x, e, false);
+      case 'rand': return '<span class="t-fn">RANDOM</span>(' + h(e.a) + ', ' + h(e.b) + ')';
       default: return paren(e.a, e, false) + ' ' + (e.op ? opHTML(e) : '<span class="t-blank">?</span>') + ' ' + paren(e.b, e, true);
     }
   };

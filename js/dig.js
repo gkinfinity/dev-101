@@ -364,7 +364,7 @@
       const t = e.target;
       if (t.matches('select[data-slot="var"]')) { S.prog.nodes[t.dataset.eid].name = t.value; codeEdited(); }
       else if (t.matches('select.op')) { S.prog.nodes[t.dataset.eid].op = t.value; codeEdited(); }
-      else if (t.matches('input.num')) { const n = parseFloat(t.value); if (!isNaN(n)) S.prog.nodes[t.dataset.eid].v = n; codeEdited(); }
+      else if (t.matches('input.num')) { const n = parseFloat(t.value); S.prog.nodes[t.dataset.eid].v = isNaN(n) ? null : n; codeEdited(); }
     });
     codeEl.addEventListener('click', e => {
       const b = e.target.closest('.not-btn');
@@ -379,21 +379,23 @@
     // Run the code with set values and compare what it does with what it should do.
     function runTests() {
       const box = $('tests');
+      const realRandom = TT.randInt;
       const rows = sc.tests.map(t => {
         const vars = Object.assign({}, t.vals);
         const ctx = {};
-        for (const st of TT.run(S.prog, vars, ctx)) { /* run it to the end */ }
-        const outs = ctx.outputs || [];
-        const got = ctx.crashed ? null : outs.length ? outs[outs.length - 1].text : null;
-        return { t, ok: !ctx.crashed && got === t.expect, got, crash: ctx.crashed };
+        TT.randInt = (a, b) => Math.min(b, Math.max(a, t.random));
+        try { for (const st of TT.run(S.prog, vars, ctx)) { /* run it to the end */ } } finally { TT.randInt = realRandom; }
+        const got = (ctx.outputs || []).map(o => o.text);
+        return { t, ok: !ctx.crashed && got.join('|') === t.expect.join('|'), got, crash: ctx.crashed };
       });
-      const said = v => (v ? '"' + esc(v) + '"' : 'nothing');
-      const valsText = v => Object.keys(v).map(k => '<span class="t-var">' + k + '</span> ' + TT.valHTML(v[k])).join(', ');
+      const said = list => (list.length ? list.map(v => '"' + esc(v) + '"').join(' then ') : 'nothing');
+      const valsText = (v, r) => Object.keys(v).map(k => '<span class="t-var">' + k + '</span> ' + TT.valHTML(v[k])).join(', ') +
+        ', <span class="t-fn">RANDOM</span> gives ' + TT.valHTML(r);
       const passed = rows.filter(r => r.ok).length;
       box.innerHTML = rows.map(r => '<li class="' + (r.ok ? 'pass' : 'fail') + '"><span class="tick">' + (r.ok ? '✓' : '✗') + '</span><div>' +
         '<b>' + esc(r.t.say) + '</b> → should output ' + said(r.t.expect) +
         (r.ok ? '' : r.crash ? '<div class="why">' + esc(r.crash) + '</div>' : '<div class="why">Your code output ' + said(r.got) + '.</div>') +
-        '<div class="vals">' + valsText(r.t.vals) + '</div></div></li>').join('') +
+        '<div class="vals">' + valsText(r.t.vals, r.t.random) + '</div></div></li>').join('') +
         '<li class="summary ' + (passed === rows.length ? 'pass' : '') + '">' + (passed === rows.length ? 'All ' + rows.length + ' tests pass. Goal complete!' : passed + ' of ' + rows.length + ' tests pass.') + '</li>';
       box.hidden = false;
       if (passed === rows.length) ui.toast('All tests pass!', 'good');
@@ -684,7 +686,7 @@
 
     /* ----- the frame loop ----- */
     let raf = 0, last = performance.now(), uiTimer = 0, holdKey = '', lastTargetKey = '', lastOut = '';
-    let target = null, lastSteps = [], previewLines = null;
+    let target = null, lastSteps = [], previewLines = null, keepSteps = [], keepUntil = 0;
 
     function frame(now) {
       raf = requestAnimationFrame(frame);
@@ -732,6 +734,7 @@
         // From your eyes to the exact spot the crosshair touches, so it changes as you aim.
         V.distance = round2(hit.t);
         V.isBedrock = b === BEDROCK;
+        V.isOre = b === COAL || b === GOLD || b === DIAMOND;
         const key = hit.x + ',' + hit.y + ',' + hit.z;
         if (key !== lastTargetKey) {
           lastTargetKey = key;
@@ -752,19 +755,24 @@
         const steps = [];
         for (const st of TT.run(S.prog, V, ctx)) steps.push(st);
         lastSteps = steps;
+        // A frame that mined a block stays in the step-by-step panel for a moment,
+        // so the RANDOM roll can be read.
+        if (steps.some(st => st.kind === 'out' && st.stmt.fx === 'mine')) { keepSteps = steps; keepUntil = now + 2000; }
         const outs = ctx.outputs || [];
         const o = outs.length ? outs[outs.length - 1] : null;
         if (ctx.crashed) {
           if (lastOut !== ctx.crashed) { setOut(ctx.crashed, 'crash'); lastOut = ctx.crashed; }
         } else if (o) {
-          if (o.fx === 'mine') {
+          const gem = outs.some(x => x.fx === 'gem');
+          if (outs.some(x => x.fx === 'mine')) {
             world.set(hit.x, hit.y, hit.z, AIR);
             burst(hit.x, hit.y, hit.z, b);
             rebuild();
             S.mined++;
             holdKey = '';
             V.holdTime = 0;
-            checkChallenges({ block: NAMES[b], distance: V.distance, vals: Object.assign({}, V), refs: S.prog.refs });
+            if (gem) burst(hit.x, hit.y, hit.z, DIAMOND);
+            checkChallenges({ block: NAMES[b], distance: V.distance, vals: Object.assign({}, V), refs: S.prog.refs, gem });
           }
           if (lastOut !== o.text) { setOut(o.text, o.fx === 'far' || o.fx === 'bedrock' ? 'warn' : ''); lastOut = o.text; }
         }
@@ -803,9 +811,10 @@
       if (uiTimer <= 0) {
         uiTimer = 0.12;
         updateMem();
-        if (lastSteps.length) {
-          markCode(lastSteps);
-          const html = lastSteps.filter(s => !s.silent && s.kind !== 'done' && s.kind !== 'none')
+        const shown = now < keepUntil ? keepSteps : lastSteps;
+        if (shown.length) {
+          markCode(shown);
+          const html = shown.filter(s => !s.silent && s.kind !== 'done' && s.kind !== 'none')
             .map((s, i) => { const h = TT.stepHTML(s, i + 1); return '<li class="tr ' + h.cls + '">' + h.html + '</li>'; }).join('');
           if (html !== previewLines) { traceEl.innerHTML = html; previewLines = html; }
         } else if (hit && S.prog.main) {
@@ -894,7 +903,7 @@
         gl.enableVertexAttribArray(dp.a.aColor);
         gl.vertexAttribPointer(dp.a.aColor, 3, gl.FLOAT, false, 24, 12);
         gl.uniformMatrix4fv(dp.u.uMVP, false, mvp);
-        gl.uniform1f(dp.u.uScale, canvas.height * 0.09);
+        gl.uniform1f(dp.u.uScale, canvas.height * 0.06);
         gl.drawArrays(gl.POINTS, 0, dots.length);
         gl.disableVertexAttribArray(dp.a.aPos);
         gl.disableVertexAttribArray(dp.a.aColor);

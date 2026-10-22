@@ -30,8 +30,9 @@
   }
 
   function numInput(e, cls) {
-    const w = Math.max(2, String(e.v).length + 1);
-    return '<input class="num ' + cls + '" type="number" value="' + e.v + '" data-eid="' + e.eid +
+    const empty = e.v == null;
+    const w = Math.max(2, String(empty ? '?' : e.v).length + 1);
+    return '<input class="num ' + cls + (empty ? ' empty' : '') + '" type="number" value="' + (empty ? '' : e.v) + '" placeholder="?" data-eid="' + e.eid +
       '" aria-label="Number" title="Click to change" style="width:' + (w + 1.2) + 'ch">';
   }
 
@@ -106,6 +107,7 @@
       case 'bool': return TT.valHTML(e.v);
       case 'str': return TT.valHTML(e.v);
       case 'not': return notButton(e, 'ps-not') + ' ' + pparen(e.x, e, false);
+      case 'rand': return '<span class="t-fn">RANDOM</span>(' + pexpr(e.a) + ', ' + pexpr(e.b) + ')';
       default: {
         const op = e.k === 'logic' ? opSelect(e, 'ps-sel ps-log') : opSelect(e, 'ps-sel');
         return pparen(e.a, e, false) + ' ' + op + ' ' + pparen(e.b, e, true);
