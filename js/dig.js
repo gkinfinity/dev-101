@@ -379,23 +379,43 @@
     // Run the code with set values and compare what it does with what it should do.
     function runTests() {
       const box = $('tests');
+      // Each test runs once for every number RANDOM can give, so any code that
+      // gives a diamond 1 time in 5 passes, whichever number it checks for.
+      const DIAMOND_TEXT = 'You found a diamond!';
+      const rand = S.prog.refs.rand;
+      const lo = rand && rand.a.k === 'num' ? rand.a.v : 1, hi = rand && rand.b.k === 'num' ? rand.b.v : 5;
+      const rolls = [];
+      for (let v = Math.ceil(lo); v <= Math.floor(hi) && rolls.length < 100; v++) rolls.push(v);
+      if (!rolls.length) rolls.push(1);
+      const said = list => (list.length ? list.map(v => '"' + esc(v) + '"').join(' then ') : 'nothing');
+      const howOften = f => (f === 1 ? 'every time' : f === 0 ? 'never' : '1 time in ' + Math.round(1 / f));
       const realRandom = TT.randInt;
       const rows = sc.tests.map(t => {
-        const vars = Object.assign({}, t.vals);
-        const ctx = {};
-        TT.randInt = (a, b) => Math.min(b, Math.max(a, t.random));
-        try { for (const st of TT.run(S.prog, vars, ctx)) { /* run it to the end */ } } finally { TT.randInt = realRandom; }
-        const got = (ctx.outputs || []).map(o => o.text);
-        return { t, ok: !ctx.crashed && got.join('|') === t.expect.join('|'), got, crash: ctx.crashed };
+        let diamonds = 0, why = null;
+        try {
+          for (const roll of rolls) {
+            const vars = Object.assign({}, t.vals);
+            const ctx = {};
+            TT.randInt = () => roll;
+            for (const st of TT.run(S.prog, vars, ctx)) { /* run it to the end */ }
+            if (ctx.crashed) { why = ctx.crashed; break; }
+            const got = (ctx.outputs || []).map(o => o.text);
+            const rest = got.filter(x => x !== DIAMOND_TEXT);
+            if (rest.join('|') !== t.expect.join('|')) { why = 'Your code displayed ' + said(got) + ' when RANDOM gave ' + roll + '.'; break; }
+            if (got.includes(DIAMOND_TEXT)) diamonds++;
+          }
+        } finally { TT.randInt = realRandom; }
+        if (!why && Math.abs(diamonds / rolls.length - t.diamond) > 1e-9) {
+          why = 'Your code gave a diamond ' + diamonds + ' time' + (diamonds === 1 ? '' : 's') + ' out of ' + rolls.length + ' RANDOM results.';
+        }
+        return { t, ok: !why, why };
       });
-      const said = list => (list.length ? list.map(v => '"' + esc(v) + '"').join(' then ') : 'nothing');
-      const valsText = (v, r) => Object.keys(v).map(k => '<span class="t-var">' + k + '</span> ' + TT.valHTML(v[k])).join(', ') +
-        ', <span class="t-fn">RANDOM</span> gives ' + TT.valHTML(r);
+      const valsText = v => Object.keys(v).map(k => '<span class="t-var">' + k + '</span> ' + TT.valHTML(v[k])).join(', ');
       const passed = rows.filter(r => r.ok).length;
       box.innerHTML = rows.map(r => '<li class="' + (r.ok ? 'pass' : 'fail') + '"><span class="tick">' + (r.ok ? '✓' : '✗') + '</span><div>' +
-        '<b>' + esc(r.t.say) + '</b> → should output ' + said(r.t.expect) +
-        (r.ok ? '' : r.crash ? '<div class="why">' + esc(r.crash) + '</div>' : '<div class="why">Your code output ' + said(r.got) + '.</div>') +
-        '<div class="vals">' + valsText(r.t.vals, r.t.random) + '</div></div></li>').join('') +
+        '<b>' + esc(r.t.say) + '</b> → should display ' + said(r.t.expect) + (r.t.expect.length ? ', with a diamond ' + howOften(r.t.diamond) : '') +
+        (r.ok ? '' : '<div class="why">' + esc(r.why) + '</div>') +
+        '<div class="vals">' + valsText(r.t.vals) + '</div></div></li>').join('') +
         '<li class="summary ' + (passed === rows.length ? 'pass' : '') + '">' + (passed === rows.length ? 'All ' + rows.length + ' tests pass. Goal complete!' : passed + ' of ' + rows.length + ' tests pass.') + '</li>';
       box.hidden = false;
       if (passed === rows.length) ui.toast('All tests pass!', 'good');
@@ -734,7 +754,7 @@
         // From your eyes to the exact spot the crosshair touches, so it changes as you aim.
         V.distance = round2(hit.t);
         V.isBedrock = b === BEDROCK;
-        V.isOre = b === COAL || b === GOLD || b === DIAMOND;
+        V.isDiamond = b === DIAMOND;
         const key = hit.x + ',' + hit.y + ',' + hit.z;
         if (key !== lastTargetKey) {
           lastTargetKey = key;

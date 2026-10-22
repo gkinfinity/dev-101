@@ -11,7 +11,8 @@
 
    The Dig Site (kind: 'dig') is different: its program runs every frame
    inside a 3D world (dig.js). Students fill in its blanks; the Test button
-   runs the finished code against `tests`, and challenges are checked each
+   runs the finished code against `tests` once for every number RANDOM can
+   give (`diamond` is how often a diamond should appear), and challenges are checked each
    time a block is mined, with { block, distance, vals, refs }. */
 (function () {
   'use strict';
@@ -120,13 +121,13 @@
       id: 'dig',
       kind: 'dig',
       title: 'The Dig Site',
-      concepts: ['Every frame', 'Variables', 'AND', 'OR', 'NOT', 'ELSE IF', 'RANDOM'],
+      concepts: ['Every frame', 'Variables', 'AND', 'NOT', 'ELSE IF', 'RANDOM'],
       vars: [
         { name: 'reach', type: 'num', init: 4.5, min: 1, max: 12, step: 0.01, slider: true, unit: 'meters' },
         { name: 'digTime', type: 'num', init: 1, min: 0, max: 5, step: 0.1, slider: true, unit: 'seconds' },
         { name: 'distance', type: 'num', init: 0, role: 'calc', unit: 'meters' },
         { name: 'isBedrock', type: 'bool', init: false, role: 'calc' },
-        { name: 'isOre', type: 'bool', init: false, role: 'calc' },
+        { name: 'isDiamond', type: 'bool', init: false, role: 'calc' },
         { name: 'holdTime', type: 'num', init: 0, role: 'calc', unit: 'seconds' },
       ],
       // Students fill in every ? and decide where NOT goes.
@@ -135,24 +136,23 @@
           [B.blankLogic(B.maybeNot(B.blankCmp()), B.maybeNot(B.blankVar()), 'logic'), [
             B.iff([[B.maybeNot(B.blankCmp()), [
               B.out('Block mined!', 'mine'),
-              B.iff([[B.blankLogic(B.maybeNot(B.blankVar()), B.maybeNot({ k: 'cmp', a: B.random(1, 5), op: null, b: B.blankNum() }), 'gemLogic'),
-                [B.out('You found a gem!', 'gem')], 'Gem: always from ore, or when RANDOM gives 1']], null),
+              B.iff([[B.blankLogic(B.maybeNot(B.blankVar()), B.maybeNot({ k: 'cmp', a: B.random(1, 5, 'rand'), op: null, b: B.blankNum() }), 'gemLogic'),
+                [B.out('You found a diamond!', 'gem')], 'Diamond from diamond ore, OR a 1/5 bonus on any block']], null),
             ], 'Mine the block once it has been held long enough']], null),
           ], 'The block must be close enough AND bedrock cannot be mined'],
           [B.maybeNot(B.blankVar()), [B.out('Bedrock cannot be mined.', 'bedrock')], 'Check for specific block type'],
         ], [B.out('Too far away!', 'far')], { main: true }),
       ],
-      goal: 'Finish the code so every block can be mined except bedrock. Mining a block should take time. Ore always gives a gem; other blocks give one 1 time in 5.',
+      goal: 'Finish the code so every block can be mined except bedrock. Mining a block should take time. Diamond ore always gives a diamond, and any other block has a bonus 1 in 5 chance.',
       // The Test button runs the code with these values and compares what it does.
       tests: [
-        { say: 'Dirt in reach, held long enough, RANDOM gives 3', random: 3, vals: { distance: 2, reach: 4.5, isBedrock: false, isOre: false, holdTime: 1.5, digTime: 1 }, expect: ['Block mined!'] },
-        { say: 'Dirt in reach, held long enough, RANDOM gives 1', random: 1, vals: { distance: 2, reach: 4.5, isBedrock: false, isOre: false, holdTime: 1.5, digTime: 1 }, expect: ['Block mined!', 'You found a gem!'] },
-        { say: 'Ore in reach, held long enough, RANDOM gives 5', random: 5, vals: { distance: 2, reach: 4.5, isBedrock: false, isOre: true, holdTime: 1.5, digTime: 1 }, expect: ['Block mined!', 'You found a gem!'] },
-        { say: 'A block in reach, not held long enough', random: 1, vals: { distance: 2, reach: 4.5, isBedrock: false, isOre: false, holdTime: 0.4, digTime: 1 }, expect: [] },
-        { say: 'A block too far away', random: 1, vals: { distance: 7, reach: 4.5, isBedrock: false, isOre: false, holdTime: 3, digTime: 1 }, expect: ['Too far away!'] },
-        { say: 'Bedrock in reach', random: 1, vals: { distance: 2, reach: 4.5, isBedrock: true, isOre: false, holdTime: 3, digTime: 1 }, expect: ['Bedrock cannot be mined.'] },
-        { say: 'A far block with a long reach, RANDOM gives 4', random: 4, vals: { distance: 6, reach: 8, isBedrock: false, isOre: false, holdTime: 2.5, digTime: 2 }, expect: ['Block mined!'] },
-        { say: 'A slow block not held long enough', random: 2, vals: { distance: 6, reach: 8, isBedrock: false, isOre: true, holdTime: 1.5, digTime: 2 }, expect: [] },
+        { say: 'Dirt in reach, held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 1.5, digTime: 1 }, expect: ['Block mined!'], diamond: 1 / 5 },
+        { say: 'Diamond ore in reach, held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: true, holdTime: 1.5, digTime: 1 }, expect: ['Block mined!'], diamond: 1 },
+        { say: 'A block in reach, not held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 0.4, digTime: 1 }, expect: [], diamond: 0 },
+        { say: 'A block too far away', vals: { distance: 7, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 3, digTime: 1 }, expect: ['Too far away!'], diamond: 0 },
+        { say: 'Bedrock in reach', vals: { distance: 2, reach: 4.5, isBedrock: true, isDiamond: false, holdTime: 3, digTime: 1 }, expect: ['Bedrock cannot be mined.'], diamond: 0 },
+        { say: 'A far block with a long reach', vals: { distance: 6, reach: 8, isBedrock: false, isDiamond: false, holdTime: 2.5, digTime: 2 }, expect: ['Block mined!'], diamond: 1 / 5 },
+        { say: 'Diamond ore not held long enough', vals: { distance: 6, reach: 8, isBedrock: false, isDiamond: true, holdTime: 1.5, digTime: 2 }, expect: [], diamond: 0 },
       ],
       challenges: [
         { text: 'Mine a block.', check: e => true },
@@ -161,10 +161,10 @@
         { text: 'Mine a block more than 8 meters away.', check: e => e.distance > 8 },
         { text: 'Mine a block with digTime 0.', check: e => e.vals.digTime === 0 },
         { text: 'Change AND to OR, then mine bedrock.', check: e => e.refs.logic.op === 'OR' && e.block === 'bedrock' },
-        { text: 'Get a gem from a block that is not ore.', check: e => e.gem && !e.vals.isOre },
+        { text: 'Get a bonus diamond from a block that is not diamond ore.', check: e => e.gem && !e.vals.isDiamond },
       ],
       // One question per variable: students describe it, then use that to fill in the blanks.
-      questions: ['reach', 'digTime', 'distance', 'isBedrock', 'isOre', 'holdTime'],
+      questions: ['reach', 'digTime', 'distance', 'isBedrock', 'isDiamond', 'holdTime'],
     },
   ];
 

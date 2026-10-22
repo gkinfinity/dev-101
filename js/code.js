@@ -6,7 +6,9 @@
   const TT = window.TT;
   const esc = TT.esc;
 
+  let problemNo = 0;  // each commented IF is a numbered problem, colored as a group
   TT.renderCode = function (prog, view) {
+    problemNo = 0;
     return view === 'pseudo'
       ? '<div class="pseudo">' + pseudoList(prog.body, 0, false) + '</div>'
       : '<div class="blocks">' + blockList(prog.body, false) + '</div>';
@@ -121,8 +123,20 @@
     return TT.needParens(c, parent, right) ? '<span class="t-par">(</span>' + s + '<span class="t-par">)</span>' : s;
   }
 
-  function line(attrs, ind, content, off) {
-    return '<div class="ln' + (off ? ' off' : '') + '" ' + attrs + ' style="--ind:' + ind + '"><span class="ln-code">' + content + '</span></div>';
+  function line(attrs, ind, content, off, cls) {
+    return '<div class="ln' + (off ? ' off' : '') + (cls ? ' ' + cls : '') + '" ' + attrs + ' style="--ind:' + ind + '"><span class="ln-code">' + content + '</span></div>';
+  }
+
+  // Long comments become several comment lines, so no line of code ever wraps.
+  function commentLines(text, ind) {
+    const max = 62 - ind * 3;
+    const out = [];
+    let cur = '';
+    text.split(' ').forEach(w => {
+      if (cur && (cur + ' ' + w).length > max) { out.push(cur); cur = w; } else cur = cur ? cur + ' ' + w : w;
+    });
+    if (cur) out.push(cur);
+    return out;
   }
 
   function pseudoList(list, ind, off) {
@@ -143,10 +157,15 @@
     }
     let h = '';
     s.branches.forEach((b, i) => {
-      if (b.comment) h += line('class="ln-comment"', ind, '<span class="t-note">// ' + esc(b.comment) + '</span>', isOff);
+      const prob = b.comment ? 'prob prob-' + (++problemNo) : '';
+      if (b.comment) {
+        commentLines(b.comment, ind).forEach((text, k) => {
+          h += line('', ind, (k ? '' : '<span class="prob-tag">' + problemNo + '</span>') + '<span class="t-note">// ' + esc(text) + '</span>', isOff, 'ln-comment ' + prob);
+        });
+      }
       h += line('data-of="' + s.id + '" data-head="' + i + '"', ind,
         (i ? '' : opt) + '<span class="t-ctl">' + (i ? 'ELSE IF' : 'IF') + '</span> ' + TT.condTop(b.cond, pexpr(b.cond)) +
-        (i ? '' : note) + '<span class="res"></span>', isOff);
+        (i ? '' : note) + '<span class="res"></span>', isOff, prob);
       h += pseudoList(b.body, ind + 1, isOff);
     });
     if (s.else) {

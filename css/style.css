@@ -530,6 +530,15 @@ select.op option { color: #d7ffe0; background: #031009; }
 .not-btn.maybe.off:hover { opacity: .8; }
 .t-blank { color: #ffc247; font-weight: 800; }
 .t-fn { color: var(--cyan); font-weight: 800; }
+/* Each problem (a comment and its IF) gets its own color; the program stays one list. */
+.ln.prob-1 { --pc: 94, 242, 255; }
+.ln.prob-2 { --pc: 255, 194, 71; }
+.ln.prob-3 { --pc: 255, 77, 219; }
+.ln.prob-4 { --pc: 157, 123, 255; }
+.ln.prob { background: rgba(var(--pc), .08); box-shadow: inset 3px 0 0 rgb(var(--pc)); border-radius: 0; }
+.ln.prob .t-note { color: rgb(var(--pc)); opacity: .9; }
+.prob-tag { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-right: 8px; border-radius: 5px;
+  background: rgb(var(--pc)); color: #000; font: 900 12px var(--mono); vertical-align: 1px; }
 .ps-num.empty { border: 1px solid #ffc247; background: rgba(255, 194, 71, .1); }
 .ps-num::placeholder { color: #ffc247; opacity: 1; }
 .p-questions { margin-top: 16px; display: grid; gap: 14px; }
