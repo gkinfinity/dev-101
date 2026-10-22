@@ -236,6 +236,21 @@
   ].join('\n');
   const DOT_FS = 'precision mediump float; varying vec3 vColor; void main() { gl_FragColor = vec4(vColor, 1.0); }';
 
+  // A dropped diamond spins on its own axis, so the light moves across it.
+  const ITEM_VS = [
+    'attribute vec3 aPos; attribute vec3 aNormal; attribute vec3 aColor;',
+    'uniform mat4 uMVP; uniform vec3 uAt; uniform float uSpin; uniform float uScale;',
+    'varying vec3 vColor;',
+    'void main() {',
+    '  float c = cos(uSpin), s = sin(uSpin);',
+    '  vec3 p = vec3(c * aPos.x + s * aPos.z, aPos.y, c * aPos.z - s * aPos.x) * uScale;',
+    '  vec3 n = vec3(c * aNormal.x + s * aNormal.z, aNormal.y, c * aNormal.z - s * aNormal.x);',
+    '  vColor = aColor * (0.6 + 0.45 * abs(dot(n, vec3(0.48, 0.64, 0.6)))) + 0.05;',
+    '  gl_Position = uMVP * vec4(p + uAt, 1.0);',
+    '}',
+  ].join('\n');
+  const ITEM_FS = 'precision mediump float; varying vec3 vColor; void main() { gl_FragColor = vec4(min(vColor, 1.0), 1.0); }';
+
   function compile(gl, vs, fs) {
     const make = (type, src) => {
       const s = gl.createShader(type);
@@ -260,6 +275,43 @@
   const CUBE = (() => {
     const o = [];
     FACES.forEach(f => [0, 1, 2, 0, 2, 3].forEach(k => o.push(f.c[k][0], f.c[k][1], f.c[k][2], UV[k][0], UV[k][1])));
+    return new Float32Array(o);
+  })();
+
+  // The diamond you pick up: pixel art one pixel thick, like the blocks around it.
+  const GEM_ART = [
+    '....########....',
+    '...#wwaabbaa#...',
+    '..#wabbaabbcc#..',
+    '.#aabbbaabbbcc#.',
+    '.#dddddddddddd#.',
+    '..#bbcaabccdd#..',
+    '...#bcaabcdd#...',
+    '....#caabcd#....',
+    '.....#aabd#.....',
+    '......#ab#......',
+    '.......##.......',
+  ];
+  const GEM_COLORS = { '#': [0.04, 0.33, 0.4], w: [0.92, 1, 1], a: [0.6, 0.96, 0.98], b: [0.33, 0.86, 0.93], c: [0.2, 0.7, 0.8], d: [0.12, 0.52, 0.62] };
+  const GEM = (() => {
+    const s = 1 / 28, rows = GEM_ART.length, cols = GEM_ART[0].length;
+    const filled = (i, j) => j >= 0 && j < rows && i >= 0 && i < cols && GEM_ART[j][i] !== '.';
+    const o = [];  // x y z, nx ny nz, r g b
+    for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+      if (!filled(i, j)) continue;
+      const col = GEM_COLORS[GEM_ART[j][i]];
+      const x0 = (i - cols / 2) * s, y0 = (rows / 2 - 1 - j) * s, z0 = -s / 2;
+      FACES.forEach(f => {
+        // the front and back always show; an edge only where the next pixel is empty (rows count down)
+        if (f.n[0] && filled(i + f.n[0], j)) return;
+        if (f.n[1] && filled(i, j - f.n[1])) return;
+        const shade = f.n[2] ? 1 : 0.7;
+        [0, 1, 2, 0, 2, 3].forEach(k => {
+          const c = f.c[k];
+          o.push(x0 + c[0] * s, y0 + c[1] * s, z0 + c[2] * s, f.n[0], f.n[1], f.n[2], col[0] * shade, col[1] * shade, col[2] * shade);
+        });
+      });
+    }
     return new Float32Array(o);
   })();
 
@@ -298,7 +350,7 @@
       const prog = TT.prepare(sc.program(B, parts, 1));
       const vals = {};
       sc.vars.forEach(v => { vals[v.name] = v.init; });
-      saved = { parts, step: 1, passed: {}, prog, vals, edited: false, world: null, player: null, mined: 0 };
+      saved = { parts, step: 1, passed: {}, prog, vals, edited: false, world: null, player: null, mined: 0, items: [], gems: 0 };
     }
     const S = saved;
     const varDef = name => sc.vars.find(v => v.name === name);
@@ -317,6 +369,7 @@
       '<canvas id="dig-canvas" tabindex="0" aria-label="3D block world. Click to play."></canvas>' +
       '<div class="xh" id="xh" aria-hidden="true"></div>' +
       '<div class="w-hud w-tl" id="hud-target">looking at: nothing</div>' +
+      '<div class="w-hud w-gems" id="hud-gems" hidden><svg viewBox="0 0 16 12" aria-hidden="true"><path d="M4,0H12L16,4L8,12L0,4Z" fill="#5ef2ff" stroke="#127c8c"/></svg>diamonds: <b>0</b></div>' +
       '<div class="dig-bar" id="dig-bar"><div id="dig-fill"></div></div>' +
       '<div class="pick" id="pick" aria-hidden="true"><svg viewBox="0 0 120 120"><g transform="rotate(-35 60 60)">' +
       '<rect x="55" y="38" width="10" height="78" rx="3" fill="#8b5a2b" stroke="#3b200c" stroke-width="2"/>' +
@@ -351,7 +404,7 @@
     const $ = id => document.getElementById(id);
     const canvas = $('dig-canvas'), worldEl = $('world'), codeEl = $('code'), memEl = $('mem'), traceEl = $('trace');
     const xh = $('xh'), hudTarget = $('hud-target'), digBar = $('dig-bar'), digFill = $('dig-fill');
-    const pick = $('pick'), overlay = $('w-overlay'), outEl = $('out');
+    const pick = $('pick'), overlay = $('w-overlay'), outEl = $('out'), hudGems = $('hud-gems');
 
     /* ----- code panel ----- */
     TT.blankVars = sc.vars.map(v => v.name).sort((a, b) => a.localeCompare(b));
@@ -609,6 +662,15 @@
       newly.forEach(i => ui.toast('Challenge ' + (i + 1) + ' done', 'good'));
     }
 
+    function drawGems(pop) {
+      hudGems.hidden = !S.gems;
+      hudGems.querySelector('b').textContent = S.gems;
+      if (!pop) return;
+      hudGems.classList.remove('pop');
+      void hudGems.offsetWidth;  // restart the animation
+      hudGems.classList.add('pop');
+    }
+
     function setOut(text, kind) {
       outEl.className = 'screen-out' + (kind ? ' ' + kind : '') + (text ? ' has' : '');
       outEl.innerHTML = '<span class="out-label">DISPLAY</span><span class="out-text">' + (text ? esc(text) : '<i>nothing yet</i>') + '</span>';
@@ -668,6 +730,7 @@
     drawCode();
     drawMem();
     drawChallenges();
+    drawGems(false);
     traceEl.innerHTML = '';
 
     /* ----- WebGL setup ----- */
@@ -677,12 +740,13 @@
       overlay.hidden = true;
       return () => {};
     }
-    let world, worldProg, boxProg, dotProg, meshBuf, meshCount = 0;
-    const cubeBuf = gl.createBuffer(), dotBuf = gl.createBuffer();
+    let world, worldProg, boxProg, dotProg, itemProg, meshBuf, meshCount = 0;
+    const cubeBuf = gl.createBuffer(), dotBuf = gl.createBuffer(), gemBuf = gl.createBuffer();
     try {
       worldProg = compile(gl, WORLD_VS, WORLD_FS);
       boxProg = compile(gl, BOX_VS, BOX_FS);
       dotProg = compile(gl, DOT_VS, DOT_FS);
+      itemProg = compile(gl, ITEM_VS, ITEM_FS);
     } catch (err) {
       $('no-gl').hidden = false;
       $('no-gl').innerHTML = '<p>The 3D view could not start: ' + esc(err.message) + '</p>';
@@ -691,6 +755,8 @@
     }
     gl.bindBuffer(gl.ARRAY_BUFFER, cubeBuf);
     gl.bufferData(gl.ARRAY_BUFFER, CUBE, gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gemBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, GEM, gl.STATIC_DRAW);
     meshBuf = gl.createBuffer();
 
     function rebuild() {
@@ -820,6 +886,50 @@
       }
     }
 
+    /* ----- dropped diamonds ----- */
+    // A diamond pops out of the mined block, falls, then floats and spins until
+    // the player walks over it. The diamond challenges count when it is picked up.
+    const items = S.items;
+    function dropGem(x, y, z, ev) {
+      const a = Math.random() * Math.PI * 2;
+      items.push({ p: [x + 0.5, y + 0.3, z + 0.5], v: [Math.cos(a) * 1.3, 4.2, Math.sin(a) * 1.3], age: 0, spin: a, fly: -1, ev });
+    }
+    function updateItems(dt) {
+      for (let i = items.length - 1; i >= 0; i--) {
+        const it = items[i];
+        it.age += dt;
+        it.spin += dt * 1.8;
+        if (it.fly >= 0) {
+          // flying into the player, then counted
+          it.fly += dt / 0.16;
+          const k = Math.min(1, it.fly);
+          it.p[0] += (P.x - it.p[0]) * k; it.p[1] += (P.y + 0.9 - it.p[1]) * k; it.p[2] += (P.z - it.p[2]) * k;
+          if (it.fly >= 1) {
+            items.splice(i, 1);
+            S.gems++;
+            drawGems(true);
+            checkChallenges(Object.assign({}, it.ev, { gem: true }));
+          }
+          continue;
+        }
+        it.v[1] = Math.max(-20, it.v[1] - 18 * dt);
+        const cell = (x, y, z) => solidAt(Math.floor(x), Math.floor(y), Math.floor(z));
+        const nx = it.p[0] + it.v[0] * dt, nz = it.p[2] + it.v[2] * dt, y = it.p[1] + 0.1;
+        if (cell(nx + Math.sign(it.v[0]) * 0.15, y, it.p[2])) it.v[0] = 0; else it.p[0] = nx;
+        if (cell(it.p[0], y, nz + Math.sign(it.v[2]) * 0.15)) it.v[2] = 0; else it.p[2] = nz;
+        const ny = it.p[1] + it.v[1] * dt;
+        if (it.v[1] <= 0 && cell(it.p[0], ny, it.p[2])) {
+          it.p[1] = Math.floor(ny) + 1;
+          it.v[1] = 0;
+          const slow = Math.pow(0.004, dt);  // it slides to a stop on the ground
+          it.v[0] *= slow; it.v[2] *= slow;
+        } else if (it.v[1] > 0 && cell(it.p[0], ny + 0.5, it.p[2])) it.v[1] = 0;
+        else it.p[1] = ny;
+        // walk over it to pick it up (after a moment, so it can be seen first)
+        if (it.age > 0.5 && Math.hypot(it.p[0] - P.x, it.p[2] - P.z) < 1.4 && it.p[1] > P.y - 1 && it.p[1] < P.y + 2.3) it.fly = 0;
+      }
+    }
+
     /* ----- the frame loop ----- */
     let raf = 0, last = performance.now(), uiTimer = 0, holdKey = '', lastTargetKey = '', lastOut = '';
     let target = null, lastSteps = [], previewLines = null, keepSteps = [], keepUntil = 0;
@@ -907,8 +1017,9 @@
             S.mined++;
             holdKey = '';
             V.holdTime = 0;
-            if (gem) burst(hit.x, hit.y, hit.z, DIAMOND);
-            checkChallenges({ block: NAMES[b], distance: V.distance, vals: Object.assign({}, V), refs: S.prog.refs, gem });
+            const ev = { block: NAMES[b], distance: V.distance, vals: Object.assign({}, V), refs: S.prog.refs };
+            checkChallenges(ev);
+            if (gem) { burst(hit.x, hit.y, hit.z, DIAMOND); dropGem(hit.x, hit.y, hit.z, ev); }
           }
           if (lastOut !== o.text) { setOut(o.text, o.fx === 'far' || o.fx === 'bedrock' ? 'warn' : ''); lastOut = o.text; }
         }
@@ -939,7 +1050,10 @@
         if (solidAt(Math.floor(d.p[0]), Math.floor(d.p[1]), Math.floor(d.p[2]))) { d.v[1] = 0; d.v[0] *= 0.5; d.v[2] *= 0.5; d.p[1] = Math.floor(d.p[1]) + 1.02; }
       });
 
-      draw(eye, dir, prog, condValue);
+      updateItems(dt);
+
+      // Cracks only on a block the code will actually mine.
+      draw(eye, dir, digging && canMine ? prog : 0, condValue);
 
       // the slower panels
       uiTimer -= dt;
@@ -1034,6 +1148,31 @@
         gl.depthMask(true);
       }
 
+      // dropped diamonds, floating and spinning
+      if (items.length) {
+        const ip = itemProg;
+        gl.useProgram(ip.p);
+        gl.disable(gl.BLEND);
+        gl.bindBuffer(gl.ARRAY_BUFFER, gemBuf);
+        gl.enableVertexAttribArray(ip.a.aPos);
+        gl.vertexAttribPointer(ip.a.aPos, 3, gl.FLOAT, false, 36, 0);
+        gl.enableVertexAttribArray(ip.a.aNormal);
+        gl.vertexAttribPointer(ip.a.aNormal, 3, gl.FLOAT, false, 36, 12);
+        gl.enableVertexAttribArray(ip.a.aColor);
+        gl.vertexAttribPointer(ip.a.aColor, 3, gl.FLOAT, false, 36, 24);
+        gl.uniformMatrix4fv(ip.u.uMVP, false, mvp);
+        items.forEach(it => {
+          const bob = it.fly >= 0 ? 0 : 0.3 + 0.07 * Math.sin(it.age * 2.6);
+          gl.uniform3f(ip.u.uAt, it.p[0], it.p[1] + bob, it.p[2]);
+          gl.uniform1f(ip.u.uSpin, it.spin);
+          gl.uniform1f(ip.u.uScale, it.fly >= 0 ? Math.max(0.2, 1 - it.fly * 0.8) : Math.min(1, 0.4 + it.age * 3));
+          gl.drawArrays(gl.TRIANGLES, 0, GEM.length / 9);
+        });
+        gl.disableVertexAttribArray(ip.a.aPos);
+        gl.disableVertexAttribArray(ip.a.aNormal);
+        gl.disableVertexAttribArray(ip.a.aColor);
+      }
+
       // flying bits of a mined block
       if (dots.length) {
         const dp = dotProg;
@@ -1065,6 +1204,8 @@
       target: () => target,
       vals: S.vals,
       mined: () => S.mined,
+      items: () => items,
+      gems: () => S.gems,
     };
 
     return function cleanup() {

@@ -589,6 +589,10 @@ select.op option { color: #d7ffe0; background: #031009; }
 .w-hud b { color: var(--neon); }
 .w-tl { left: 10px; }
 .w-tr { right: 10px; }
+.w-gems { left: 10px; top: 44px; transform-origin: left center; }
+.w-gems svg { width: 15px; height: 12px; margin-right: 6px; vertical-align: -1px; }
+.w-gems.pop { animation: tt-gempop .4s ease-out; }
+@keyframes tt-gempop { from { transform: scale(1.35); box-shadow: 0 0 14px #5ef2ff; } to { transform: scale(1); } }
 .w-tr.pop { animation: tt-boxflash .5s ease; }
 .dig-bar { position: absolute; left: 50%; bottom: 22px; width: 220px; height: 12px; transform: translateX(-50%); border-radius: 6px; background: rgba(0, 0, 0, .6); border: 1px solid var(--line-2); overflow: hidden; opacity: 0; transition: opacity .15s; pointer-events: none; }
 .dig-bar.on { opacity: 1; }
