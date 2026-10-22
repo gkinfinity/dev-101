@@ -138,7 +138,7 @@
         bedrock: B.maybeNot(B.blankVar()),
         timeOk: B.maybeNot(B.blankCmp()),
         reachOk: B.blankLogic(B.maybeNot(B.blankCmp()), B.maybeNot(B.blankVar()), 'logic'),
-        diamond: B.blankLogic(B.maybeNot(B.blankVar()), B.maybeNot({ k: 'cmp', a: B.random(1, 5, 'rand'), op: null, b: B.blankNum() }), 'gemLogic'),
+        diamond: B.blankLogic(B.maybeNot(B.blankVar()), B.maybeNot({ k: 'cmp', a: B.random(B.blankNum(), B.blankNum(), 'rand'), op: null, b: B.blankNum() }), 'gemLogic'),
       }),
       partOrder: ['bedrock', 'timeOk', 'reachOk', 'diamond'],
       program: (B, p, step) => {
@@ -183,7 +183,7 @@
           { say: 'bedrock too far away', vals: { distance: 7, reach: 4.5, isBedrock: true, isDiamond: false, holdTime: 3, digTime: 1 }, expect: ['Bedrock cannot be mined.'] },
           { say: 'a far block with a long reach', vals: { distance: 6, reach: 8, isBedrock: false, isDiamond: false, holdTime: 2.5, digTime: 2 }, expect: ['Block mined!'] },
         ] },
-        { tip: "Read the comment above the line again, one part at a time. What numbers can RANDOM(1, 5) give, and how often does each one come up?", done: 'Diamond ore always gives a diamond, and any block has a 1 in 5 chance of diamond. Your code is finished!', tests: [
+        { tip: "Read the comment above the line again, one part at a time. Which numbers could RANDOM give, and how many of them should give a diamond?", done: 'Diamond ore always gives a diamond, and any block has a 1 in 5 chance of diamond. Your code is finished!', tests: [
           { say: 'dirt in reach held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 1.5, digTime: 1 }, expect: ['Block mined!'], diamond: 1 / 5 },
           { say: 'diamond ore in reach held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: true, holdTime: 1.5, digTime: 1 }, expect: ['Block mined!'], diamond: 1 },
           { say: 'diamond ore not held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: true, holdTime: 0.4, digTime: 1 }, expect: [], diamond: 0 },

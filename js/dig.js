@@ -431,7 +431,7 @@
       const rand = S.prog.refs.rand;
       const lo = rand && rand.a.k === 'num' ? rand.a.v : 1, hi = rand && rand.b.k === 'num' ? rand.b.v : 1;
       const rolls = [];
-      for (let v = Math.ceil(lo); v <= Math.floor(hi) && rolls.length < 100; v++) rolls.push(v);
+      for (let v = Math.ceil(lo); v <= Math.floor(hi) && rolls.length < 1000; v++) rolls.push(v);
       if (!rolls.length) rolls.push(1);
       const said = list => (list.length ? list.map(v => '"' + esc(v) + '"').join(' then ') : 'nothing');
       const howOften = f => (f === 1 ? 'every time' : f === 0 ? 'never' : '1 time in ' + Math.round(1 / f));
