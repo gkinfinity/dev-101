@@ -215,7 +215,7 @@ button:disabled { cursor: not-allowed; }
 .tog:disabled { opacity: .55; }
 
 /* sliders (the Dig Site) */
-.box-slider { grid-column: span 2; }
+.box-slider { grid-column: 1 / -1; }
 .box-slider .box-top .vb { margin-left: auto; font-size: 22px; }
 .unit { font-family: var(--mono); font-size: 12px; color: var(--muted); }
 .mem-val .unit { margin-left: 6px; }
@@ -343,19 +343,19 @@ select.op option { color: #d7ffe0; background: #031009; }
 .res.show.f { color: var(--false); box-shadow: inset 0 0 0 2px var(--false), 0 0 10px rgba(255, 77, 109, .45); }
 
 /* ---------- pseudocode ---------- */
-.pseudo { counter-reset: ln; font-family: var(--mono); font-size: 16px; background: #000; border: 1px solid var(--line); border-radius: 8px; padding: 8px 0; box-shadow: inset 0 0 30px rgba(0, 255, 106, .05); }
+.pseudo { counter-reset: ln; font-family: var(--mono); font-size: 15px; background: #000; border: 1px solid var(--line); border-radius: 8px; padding: 8px 0; box-shadow: inset 0 0 30px rgba(0, 255, 106, .05); }
 .ln { counter-increment: ln; display: flex; align-items: baseline; min-height: 36px; padding: 3px 14px 3px 0; border-radius: 5px; margin: 0 6px; }
-.ln::before { content: counter(ln); width: 32px; flex: none; text-align: right; padding-right: 12px; color: #2f6b45; font-size: 13px; }
+.ln::before { content: counter(ln); width: 28px; flex: none; text-align: right; padding-right: 12px; color: #2f6b45; font-size: 13px; }
 .ln-code { display: block; flex: 1; min-width: 0; padding-left: calc(var(--ind) * 4ch); line-height: 2; color: var(--ink); }
 .ln-code select, .ln-code input, .ln-code button { vertical-align: baseline; }
 .ln.now { background: rgba(94, 242, 255, .1); outline-offset: 0; }
 .ln.is-true:not(.now) { background: rgba(61, 255, 122, .08); }
 .ln.is-false:not(.now) { background: rgba(255, 77, 109, .08); }
-.ps-sel { border: 1px dashed var(--line-2); background: #031009; color: var(--t-log); padding: 0 6px; min-height: 28px; font-family: var(--mono); font-size: 16px; }
+.ps-sel { border: 1px dashed var(--line-2); background: #031009; color: var(--t-log); padding: 0 6px; min-height: 28px; font-family: var(--mono); font-size: 15px; }
 .ps-sel:not(.ps-log) { color: var(--t-op); }
 .ps-sel:hover { border-style: solid; border-color: var(--focus); }
 .ps-num { border: 1px dashed var(--line-2); border-radius: 5px; height: 28px; font-size: 16px; background: #031009; color: var(--t-num); }
-.ps-not { background: #031009; border: 1px dashed var(--line-2); color: var(--t-log); padding: 0 6px; min-height: 28px; font-family: var(--mono); font-size: 16px; }
+.ps-not { background: #031009; border: 1px dashed var(--line-2); color: var(--t-log); padding: 0 5px; min-height: 28px; font-family: var(--mono); font-size: 15px; }
 .ps-not.off { text-decoration: line-through; color: #3f5c49; }
 .ps-not:hover { border-style: solid; border-color: var(--focus); }
 .pseudo .opt-track { background: #2a3a30; }
@@ -369,7 +369,7 @@ select.op option { color: #d7ffe0; background: #031009; }
 .t-op { color: var(--t-op); font-weight: 700; }
 .t-out { color: var(--t-out); font-weight: 800; }
 .t-par { color: #4f7a5e; font-weight: 700; }
-.t-note { color: #4f7a5e; font-style: italic; font-weight: 400; }
+.t-note { color: #6f9c7e; font-style: italic; font-weight: 400; }
 .t-bool { font-weight: 800; border-radius: 4px; padding: 0 4px; }
 .t-true { color: var(--true); background: var(--true-bg); }
 .t-false { color: var(--false); background: var(--false-bg); }
@@ -487,12 +487,38 @@ select.op option { color: #d7ffe0; background: #031009; }
 .readonly select, .readonly input, .readonly button { pointer-events: none; }
 
 /* ---------- the Dig Site ---------- */
+.goal { margin-top: 12px; padding: 10px 14px; border-left: 3px solid var(--neon); background: rgba(0, 255, 106, .06); border-radius: 0 8px 8px 0; }
+.goal p { margin: 2px 0; color: var(--ink-2); }
+.goal b { color: var(--neon); }
+.p-end { margin-top: 16px; }
+.paused-word { display: none; font-family: var(--mono); font-weight: 900; font-size: 28px; letter-spacing: .3em; color: var(--neon); text-shadow: 0 0 14px var(--neon); }
+.w-overlay.paused .paused-word { display: block; }
+.code-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.tests { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 6px; }
+.tests li { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: rgba(0, 0, 0, .4); }
+.tests .tick { flex: none; width: 24px; height: 24px; border-radius: 6px; display: grid; place-items: center; font-weight: 900; }
+.tests .pass .tick { background: var(--true); color: #001a0a; }
+.tests .fail .tick { background: var(--false); color: #fff; }
+.tests .fail { border-color: rgba(255, 77, 109, .45); }
+.tests .why { color: #ffb3c0; margin-top: 2px; }
+.tests .vals { font-family: var(--mono); font-size: 13px; color: var(--muted); margin-top: 2px; }
+.tests .summary { font-family: var(--mono); font-weight: 800; color: var(--ink); justify-content: center; }
+.tests .summary.pass { color: #001a0a; background: var(--neon); border-color: var(--neon); box-shadow: 0 0 18px rgba(0, 255, 106, .45); }
+/* Code lines never wrap: a long line scrolls instead of splitting in two. */
+.pseudo { width: max-content; min-width: 100%; }
+.pseudo .ln-code { white-space: nowrap; flex: none; }
+.ps-sel.empty { color: #ffc247; border: 1px solid #ffc247; background: rgba(255, 194, 71, .1); }
+.ps-var { color: var(--t-var); }
+.ps-sel { padding: 0 2px; }
+.not-btn.maybe.off { text-decoration: none; color: var(--t-log); opacity: .35; }
+.not-btn.maybe.off:hover { opacity: .8; }
+.t-blank { color: #ffc247; font-weight: 800; }
 .p-questions { margin-top: 16px; display: grid; gap: 14px; }
 .p-questions .panel-head { margin-bottom: 0; }
 .question { display: grid; gap: 6px; font-size: 16px; color: var(--ink); }
 .question textarea { width: 100%; min-height: 64px; resize: vertical; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line-2); background: #000; color: var(--ink); font: 16px/1.5 var(--sans); }
 .question textarea:focus { outline: none; border-color: var(--neon); box-shadow: 0 0 0 1px var(--neon), 0 0 14px rgba(0, 255, 106, .25); }
-.dig-cols { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.dig-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 .p-world { padding: 10px; }
 .world { position: relative; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: #000; border: 1px solid var(--line-2); box-shadow: 0 0 30px rgba(0, 255, 106, .15); user-select: none; }
 .world canvas { display: block; width: 100%; height: 100%; outline: none; cursor: crosshair; }

@@ -14,11 +14,19 @@
 
   /* ---------- shared controls ---------- */
   function opSelect(e, cls) {
-    const opts = TT.OPS[e.k].map(o =>
+    const blank = e.op ? '' : '<option value="" selected disabled>?</option>';
+    const opts = blank + TT.OPS[e.k].map(o =>
       '<option value="' + esc(o) + '"' + (o === e.op ? ' selected' : '') + '>' + esc(e.k === 'logic' ? o : TT.sym(o)) + '</option>'
     ).join('');
     const kind = e.k === 'logic' ? 'logic' : e.k === 'cmp' ? 'comparison' : 'math';
-    return '<select class="op ' + cls + '" data-eid="' + e.eid + '" aria-label="Change the ' + kind + ' operator" title="Click to change">' + opts + '</select>';
+    return '<select class="op ' + cls + (e.op ? '' : ' empty') + '" data-eid="' + e.eid + '" aria-label="Choose the ' + kind + ' operator">' + opts + '</select>';
+  }
+
+  // A blank variable: pick one of the variables in memory.
+  function varSelect(e) {
+    const opts = (e.name ? '' : '<option value="" selected disabled>?</option>') + (TT.blankVars || []).map(n =>
+      '<option value="' + esc(n) + '"' + (n === e.name ? ' selected' : '') + '>' + esc(n) + '</option>').join('');
+    return '<select class="op ps-sel ps-var' + (e.name ? '' : ' empty') + '" data-eid="' + e.eid + '" data-slot="var" aria-label="Choose a variable">' + opts + '</select>';
   }
 
   function numInput(e, cls) {
@@ -28,8 +36,8 @@
   }
 
   function notButton(e, cls) {
-    return '<button type="button" class="not-btn ' + cls + (e.on ? '' : ' off') + '" data-eid="' + e.eid +
-      '" aria-pressed="' + e.on + '" title="' + (e.on ? 'Click to remove NOT' : 'Click to put NOT back') + '">NOT</button>';
+    return '<button type="button" class="not-btn ' + cls + (e.on ? '' : ' off') + (e.blank ? ' maybe' : '') + '" data-eid="' + e.eid +
+      '" aria-pressed="' + e.on + '" title="' + (e.on ? 'Click to remove NOT' : 'Click to add NOT') + '">NOT</button>';
   }
 
   function optToggle(s) {
@@ -41,7 +49,7 @@
   function rep(e, d) {
     const shade = ' d' + (d % 2);
     switch (e.k) {
-      case 'var': return '<span class="rep rep-var">' + esc(e.name) + '</span>';
+      case 'var': return '<span class="rep rep-var">' + esc(e.name || '?') + '</span>';
       case 'num': return numInput(e, 'rep-num');
       case 'str': return '<span class="rep rep-str">' + esc(e.v) + '</span>';
       case 'bool': return '<span class="hex hex-lit ' + (e.v ? 'is-t' : 'is-f') + '">' + (e.v ? 'TRUE' : 'FALSE') + '</span>';
@@ -93,7 +101,7 @@
   /* ---------- pseudocode ---------- */
   function pexpr(e) {
     switch (e.k) {
-      case 'var': return '<span class="t-var">' + esc(e.name) + '</span>';
+      case 'var': return e.blank ? varSelect(e) : '<span class="t-var">' + esc(e.name) + '</span>';
       case 'num': return numInput(e, 'ps-num');
       case 'bool': return TT.valHTML(e.v);
       case 'str': return TT.valHTML(e.v);
@@ -129,10 +137,11 @@
     }
     if (s.k === 'out') {
       return line('data-sid="' + s.id + '"', ind,
-        opt + '<span class="t-out">OUTPUT</span> <span class="t-str">"' + esc(s.text) + '"</span>' + note, isOff);
+        opt + '<span class="t-out">DISPLAY</span> <span class="t-str">"' + esc(s.text) + '"</span>' + note, isOff);
     }
     let h = '';
     s.branches.forEach((b, i) => {
+      if (b.comment) h += line('class="ln-comment"', ind, '<span class="t-note">// ' + esc(b.comment) + '</span>', isOff);
       h += line('data-of="' + s.id + '" data-head="' + i + '"', ind,
         (i ? '' : opt) + '<span class="t-ctl">' + (i ? 'ELSE IF' : 'IF') + '</span> ' + TT.condTop(b.cond, pexpr(b.cond)) +
         (i ? '' : note) + '<span class="res"></span>', isOff);
@@ -150,7 +159,7 @@
   const assignHTML = name => '<span class="t-var">' + esc(name) + '</span> <span class="t-op">' + esc(TT.settings.assign) + '</span> ';
   function stmtText(s) {
     if (s.k === 'set') return assignHTML(s.name) + TT.exprHTML(TT.strip(s.expr));
-    if (s.k === 'out') return '<span class="t-out">OUTPUT</span> <span class="t-str">"' + esc(s.text) + '"</span>';
+    if (s.k === 'out') return '<span class="t-out">DISPLAY</span> <span class="t-str">"' + esc(s.text) + '"</span>';
     return TT.condHTML(s, 0) + ' …';
   }
   TT.stepHTML = function (st, n) {
@@ -179,7 +188,7 @@
       case 'off':
         return { cls: 'k-off', html: '<div class="tr-line">' + num + '<code class="struck">' + stmtText(st.stmt) + '</code></div>' + note('off') };
       case 'crash':
-        return { cls: 'k-crash', html: line('CRASH') + note(esc(st.message)) };
+        return { cls: 'k-crash', html: '<div class="tr-line">' + num + '<span>' + esc(st.message) + '</span></div>' };
       case 'done':
         return { cls: 'k-done', html: '<div class="tr-line">' + num + '<b>Done</b></div>' };
     }

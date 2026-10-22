@@ -192,7 +192,7 @@
 
     function setOut(text, kind) {
       outEl.className = 'screen-out' + (kind ? ' ' + kind : '') + (text != null ? ' has' : '');
-      outEl.innerHTML = '<span class="out-label">OUTPUT</span><span class="out-text">' +
+      outEl.innerHTML = '<span class="out-label">DISPLAY</span><span class="out-text">' +
         (text == null ? '<i>nothing yet</i>' : esc(text)) + '</span>';
       if (text != null) pulse(outEl);
     }
@@ -858,7 +858,7 @@
       '<section class="panel wide"><h2>Order of operations</h2>' +
       '<p><code>( )</code> → math → comparisons → ' + l('NOT') + ' → ' + l('AND') + ' → ' + l('OR') + '</p>' +
       '<pre class="code-ex">' + k('IF') + ' ((' + v('hasKey') + ') ' + l('OR') + ' (' + v('hasMap') + ')) ' + l('AND') + ' (' + l('NOT') + ' ' + v('isLocked') + ')\n' +
-      '    <span class="t-out">OUTPUT</span> <span class="t-str">"Go!"</span></pre></section>' +
+      '    <span class="t-out">DISPLAY</span> <span class="t-str">"Go!"</span></pre></section>' +
       '</div>';
   }
 

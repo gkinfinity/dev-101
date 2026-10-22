@@ -306,6 +306,8 @@
       '<div class="sc-head">' +
       (ui.solo ? '' : '<a class="back-link" href="#/">← All scenarios</a>') +
       '<div class="sc-title">' + (ui.solo ? '' : '<span class="sc-num">' + sc.num + '</span>') + '<div><h1>' + esc(sc.title) + '</h1></div></div>' +
+      (sc.goal ? '<div class="goal"><p><b>Goal:</b> ' + esc(sc.goal) + '</p>' +
+        '<p>Play the game to figure out what each variable means. Press <b>Esc</b> to pause the game and edit the code.</p></div>' : '') +
       '</div>' +
       '<div class="dig-cols">' +
       '<div class="col">' +
@@ -318,27 +320,30 @@
       '<div class="pick" id="pick" aria-hidden="true"><svg viewBox="0 0 120 120"><g transform="rotate(-35 60 60)">' +
       '<rect x="55" y="38" width="10" height="78" rx="3" fill="#8b5a2b" stroke="#3b200c" stroke-width="2"/>' +
       '<path d="M14,44 Q60,14 106,44 L100,52 Q60,30 20,52Z" fill="#5ef2ff" stroke="#127c8c" stroke-width="2.5"/></g></svg></div>' +
-      '<div class="w-overlay" id="w-overlay"><button type="button" class="btn btn-run" id="enter">▶ Enter the world</button>' +
-      '<p><b>WASD</b> move · <b>mouse</b> look · <b>hold click</b> dig · <b>space</b> jump · <b>Esc</b> exit</p></div>' +
+      '<div class="w-overlay" id="w-overlay"><p class="paused-word">PAUSED</p><button type="button" class="btn btn-run" id="enter">▶ Play</button>' +
+      '<p><b>WASD</b> move · <b>mouse</b> look · <b>hold click</b> dig · <b>space</b> jump</p>' +
+      '<p><b>Esc</b> pauses the game so you can edit the code.</p></div>' +
       '<div class="w-overlay" id="no-gl" hidden><p>3D is not available in this browser.</p></div>' +
       '</div>' +
-      '<div class="screen-out" id="out"><span class="out-label">OUTPUT</span><span class="out-text"><i>nothing yet</i></span></div>' +
+      '<div class="screen-out" id="out"><span class="out-label">DISPLAY</span><span class="out-text"><i>nothing yet</i></span></div>' +
       '<div class="world-tools"><button type="button" class="btn btn-ghost" id="respawn">⤒ Respawn</button></div>' +
       '</section>' +
       '<section class="panel p-mem"><div class="panel-head"><h2>Memory</h2></div>' +
       '<div class="mem" id="mem"></div></section>' +
-      '<section class="panel p-chal"><div class="panel-head"><h2>Challenges</h2><span class="panel-sub" id="chal-count"></span></div><ol class="chal" id="chal"></ol></section>' +
       '</div>' +
       '<div class="col">' +
       '<section class="panel p-code" id="code-panel"><div class="panel-head"><h2>Code</h2></div>' +
       '<div class="code-wrap" id="code"></div>' +
-      '<div class="undo-bar" id="undo" hidden><button type="button" class="link-btn" id="undo-btn">Undo code changes</button></div></section>' +
+      '<div class="code-actions"><button type="button" class="btn btn-run" id="test-btn">✓ Test my code</button>' +
+      '<button type="button" class="btn btn-ghost" id="undo-btn" hidden>↺ Clear my code</button></div>' +
+      '<ul class="tests" id="tests" hidden></ul></section>' +
       '<section class="panel p-trace"><div class="panel-head"><h2>Step by step</h2></div>' +
       '<ol class="trace live" id="trace"></ol></section>' +
       '</div></div>' +
       (sc.questions ? '<section class="panel p-questions"><div class="panel-head"><h2>Questions</h2></div>' +
         sc.questions.map((q, i) => '<label class="question"><span>' + (i + 1) + '. ' + esc(q) + '</span>' +
           '<textarea rows="2" data-q="' + i + '"></textarea></label>').join('') + '</section>' : '') +
+      '<section class="panel p-chal p-end"><div class="panel-head"><h2>Challenges</h2><span class="panel-sub" id="chal-count"></span></div><ol class="chal" id="chal"></ol></section>' +
       (ui.solo ? '' : '<nav class="pager">' + (ui.prev ? '<a class="btn btn-ghost" href="#/' + ui.prev.id + '">← ' + esc(ui.prev.title) + '</a>' : '<span></span>') +
       '<a class="btn btn-ghost" href="#/">All scenarios</a></nav>');
 
@@ -348,16 +353,18 @@
     const pick = $('pick'), overlay = $('w-overlay'), outEl = $('out');
 
     /* ----- code panel ----- */
+    TT.blankVars = sc.vars.map(v => v.name).sort((a, b) => a.localeCompare(b));
     let lastSig = '';
     function drawCode() {
       codeEl.innerHTML = TT.renderCode(S.prog, 'pseudo');
-      $('undo').hidden = !S.edited;
+      $('undo-btn').hidden = !S.edited;
       lastSig = '';
     }
-    function codeEdited() { S.edited = true; drawCode(); }
+    function codeEdited() { S.edited = true; $('tests').hidden = true; setOut(null); lastOut = ''; drawCode(); }
     codeEl.addEventListener('change', e => {
       const t = e.target;
-      if (t.matches('select.op')) { S.prog.nodes[t.dataset.eid].op = t.value; codeEdited(); }
+      if (t.matches('select[data-slot="var"]')) { S.prog.nodes[t.dataset.eid].name = t.value; codeEdited(); }
+      else if (t.matches('select.op')) { S.prog.nodes[t.dataset.eid].op = t.value; codeEdited(); }
       else if (t.matches('input.num')) { const n = parseFloat(t.value); if (!isNaN(n)) S.prog.nodes[t.dataset.eid].v = n; codeEdited(); }
     });
     codeEl.addEventListener('click', e => {
@@ -368,7 +375,31 @@
       codeEdited();
     });
     codeEl.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('input.num')) e.target.blur(); });
-    $('undo-btn').addEventListener('click', () => { S.prog = TT.prepare(sc.code(B)); S.edited = false; drawCode(); });
+    $('undo-btn').addEventListener('click', () => { S.prog = TT.prepare(sc.code(B)); S.edited = false; $('tests').hidden = true; setOut(null); lastOut = ''; drawCode(); });
+
+    // Run the code with set values and compare what it does with what it should do.
+    function runTests() {
+      const box = $('tests');
+      const rows = sc.tests.map(t => {
+        const vars = Object.assign({}, t.vals);
+        const ctx = {};
+        for (const st of TT.run(S.prog, vars, ctx)) { /* run it to the end */ }
+        const outs = ctx.outputs || [];
+        const got = ctx.crashed ? null : outs.length ? outs[outs.length - 1].text : null;
+        return { t, ok: !ctx.crashed && got === t.expect, got, crash: ctx.crashed };
+      });
+      const said = v => (v ? '"' + esc(v) + '"' : 'nothing');
+      const valsText = v => Object.keys(v).map(k => '<span class="t-var">' + k + '</span> ' + TT.valHTML(v[k])).join(', ');
+      const passed = rows.filter(r => r.ok).length;
+      box.innerHTML = rows.map(r => '<li class="' + (r.ok ? 'pass' : 'fail') + '"><span class="tick">' + (r.ok ? '✓' : '✗') + '</span><div>' +
+        '<b>' + esc(r.t.say) + '</b> → should output ' + said(r.t.expect) +
+        (r.ok ? '' : r.crash ? '<div class="why">' + esc(r.crash) + '</div>' : '<div class="why">Your code output ' + said(r.got) + '.</div>') +
+        '<div class="vals">' + valsText(r.t.vals) + '</div></div></li>').join('') +
+        '<li class="summary ' + (passed === rows.length ? 'pass' : '') + '">' + (passed === rows.length ? 'All ' + rows.length + ' tests pass. Goal complete!' : passed + ' of ' + rows.length + ' tests pass.') + '</li>';
+      box.hidden = false;
+      if (passed === rows.length) ui.toast('All tests pass!', 'good');
+    }
+    $('test-btn').addEventListener('click', runTests);
 
     // Light up the parts of the code that just ran.
     function markCode(steps) {
@@ -476,7 +507,7 @@
 
     function setOut(text, kind) {
       outEl.className = 'screen-out' + (kind ? ' ' + kind : '') + (text ? ' has' : '');
-      outEl.innerHTML = '<span class="out-label">OUTPUT</span><span class="out-text">' + (text ? esc(text) : '<i>nothing yet</i>') + '</span>';
+      outEl.innerHTML = '<span class="out-label">DISPLAY</span><span class="out-text">' + (text ? esc(text) : '<i>nothing yet</i>') + '</span>';
     }
 
     // Answers stay in this browser so a refresh does not lose them.
@@ -583,11 +614,16 @@
       keys[e.code] = false;
       if (e.code === 'KeyF') keyDig = false;
     };
+    let started = false;
     const onLockChange = () => {
       locked = document.pointerLockElement === canvas;
-      overlay.hidden = locked || document.activeElement === canvas;
       worldEl.classList.toggle('playing', locked);
-      if (!locked) mouseDig = false;
+      if (locked) { started = true; overlay.hidden = true; return; }
+      // Esc: pause, so the code can be edited
+      mouseDig = false;
+      canvas.blur();
+      overlay.hidden = false;
+      overlay.classList.toggle('paused', started);
     };
     const onMouseMove = e => {
       if (locked || dragLook) {
@@ -708,7 +744,7 @@
         const outs = ctx.outputs || [];
         const o = outs.length ? outs[outs.length - 1] : null;
         if (ctx.crashed) {
-          if (lastOut !== ctx.crashed) { setOut('CRASH! ' + ctx.crashed, 'crash'); lastOut = ctx.crashed; }
+          if (lastOut !== ctx.crashed) { setOut(ctx.crashed, 'crash'); lastOut = ctx.crashed; }
         } else if (o) {
           if (o.fx === 'mine') {
             world.set(hit.x, hit.y, hit.z, AIR);
@@ -727,7 +763,10 @@
         if (!(mouseDig || keyDig)) { V.holdTime = 0; holdKey = ''; }
         lastSteps = [];
         if (hit && S.prog.main) {
-          try { condValue = TT.evaluate(S.prog.main.branches[0].cond, V) === true; } catch (err) { condValue = null; }
+          const cond = S.prog.main.branches[0].cond;
+          if (!TT.programHasBlank(S.prog.body) && !TT.check(cond, V)) {
+            try { condValue = TT.evaluate(cond, V) === true; } catch (err) { condValue = null; }
+          }
         }
       }
 
@@ -760,12 +799,15 @@
           if (html !== previewLines) { traceEl.innerHTML = html; previewLines = html; }
         } else if (hit && S.prog.main) {
           markCode([]);
-          const r = TT.solve(S.prog.main.branches[0].cond, V, true);
-          const sig = r.lines.join('');
-          if (sig !== previewLines) {
-            previewLines = sig;
-            traceEl.innerHTML = '<li class="tr k-predict"><div class="tr-work">' + r.lines.map((l, i) => '<code>' + (i ? '→ ' : '') + l + '</code>').join('') + '</div></li>';
+          const cond = S.prog.main.branches[0].cond;
+          const problem = TT.programHasBlank(S.prog.body) ? 'Fill in every ? first.' : TT.check(cond, V);
+          let html;
+          if (problem) html = '<li class="tr k-crash"><div class="tr-line"><span>' + esc(problem) + '</span></div></li>';
+          else {
+            const r = TT.solve(cond, V, true);
+            html = '<li class="tr k-predict"><div class="tr-work">' + r.lines.map((l, i) => '<code>' + (i ? '→ ' : '') + l + '</code>').join('') + '</div></li>';
           }
+          if (html !== previewLines) { previewLines = html; traceEl.innerHTML = html; }
         }
       }
     }

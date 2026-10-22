@@ -35,11 +35,18 @@
     and: (a, b, ref) => ({ k: 'logic', op: 'AND', a: wrap(a), b: wrap(b), ref }),
     or: (a, b, ref) => ({ k: 'logic', op: 'OR', a: wrap(a), b: wrap(b), ref }),
     not: (x, ref) => ({ k: 'not', x: wrap(x), on: true, ref }),
+    // Blanks for students to fill in: a variable to pick, an operator to pick,
+    // and a NOT they can switch on in front of a condition.
+    blankVar: () => ({ k: 'var', name: null, blank: true }),
+    blankCmp: ref => ({ k: 'cmp', a: { k: 'var', name: null, blank: true }, op: null, b: { k: 'var', name: null, blank: true }, blank: true, ref }),
+    blankLogic: (a, b, ref) => ({ k: 'logic', op: null, a, b, blank: true, ref }),
+    maybeNot: (x, ref) => ({ k: 'not', x, on: false, blank: true, ref }),
     set: (name, expr, o) => Object.assign({ k: 'set', name, expr: wrap(expr) }, o),
     out: (text, fx, o) => Object.assign({ k: 'out', text, fx }, o),
-    // branches: [[cond, [body]], [cond, [body]], ...]   elseBody: [body] or null
+    // branches: [[cond, [body], comment?], ...]   elseBody: [body] or null
+    // A comment is shown on its own line above that IF or ELSE IF.
     iff: (branches, elseBody, o) =>
-      Object.assign({ k: 'if', branches: branches.map(([cond, body]) => ({ cond, body })), else: elseBody || null }, o),
+      Object.assign({ k: 'if', branches: branches.map(([cond, body, comment]) => ({ cond, body, comment })), else: elseBody || null }, o),
   };
 
   /* Give every statement and expression an id, and collect named parts. */
@@ -160,6 +167,68 @@
     return { k: e.k, op: e.op, a: reduce(e.a), b: reduce(e.b) };
   }
 
+  /* ---------- checking a condition before working it out ---------- */
+  const BLANK = 'Fill in every ? first.';
+  TT.hasBlank = function (e) {
+    if (!e) return false;
+    if (e.k === 'var' && !e.name) return true;
+    if ((e.k === 'cmp' || e.k === 'logic') && !e.op) return true;
+    return TT.hasBlank(e.a) || TT.hasBlank(e.b) || TT.hasBlank(e.x);
+  };
+  // Every condition anywhere in a list of statements.
+  TT.programHasBlank = function (list) {
+    return (list || []).some(s => s.k === 'if' &&
+      (s.branches.some(b => TT.hasBlank(b.cond) || TT.programHasBlank(b.body)) || TT.programHasBlank(s.else)));
+  };
+  // An error message in plain words when a condition mixes up data types, or null.
+  TT.check = function (expr, vars) {
+    if (TT.hasBlank(expr)) return BLANK;
+    const name = e => (e.k === 'var' ? e.name : TT.exprText(e));
+    const kind = t => (t === 'boolean' ? 'TRUE or FALSE' : t === 'number' ? 'a number' : 'text');
+    function type(e) {
+      switch (e.k) {
+        case 'num': return 'number';
+        case 'bool': return 'boolean';
+        case 'str': return 'string';
+        case 'var': return typeof vars[e.name];
+        case 'math': return 'number';
+        case 'not': {
+          const x = type(e.x);
+          if (x !== 'boolean') throw 'NOT only works on TRUE or FALSE, but ' + name(e.x) + ' is ' + kind(x) + '.';
+          return 'boolean';
+        }
+        case 'cmp': {
+          const a = type(e.a), b = type(e.b);
+          if (['<', '>', '<=', '>='].includes(e.op)) {
+            [[e.a, a], [e.b, b]].forEach(([side, t]) => {
+              if (t !== 'number') throw name(side) + ' is ' + kind(t) + ', not a number, so it cannot be compared with ' + TT.sym(e.op) + '.';
+            });
+          } else if (a !== b) {
+            throw name(e.a) + ' is ' + kind(a) + ' but ' + name(e.b) + ' is ' + kind(b) + ', so they cannot be compared.';
+          }
+          return 'boolean';
+        }
+        case 'logic': {
+          [e.a, e.b].forEach(side => {
+            const t = type(side);
+            if (t !== 'boolean') throw name(side) + ' is ' + kind(t) + ', not TRUE or FALSE, so it cannot be used with ' + e.op + '.';
+          });
+          return 'boolean';
+        }
+      }
+      return 'unknown';
+    }
+    try {
+      const clean = strip(expr);
+      const t = type(clean);
+      if (t !== 'boolean') return name(clean) + ' is ' + kind(t) + '. An IF needs something that is TRUE or FALSE.';
+      return null;
+    } catch (msg) {
+      if (typeof msg === 'string') return msg;
+      throw msg;
+    }
+  };
+
   TT.evaluate = function (expr, vars) {
     let cur = subst(strip(expr), vars);
     while (cur.k !== 'lit') cur = reduce(cur);
@@ -194,14 +263,15 @@
     }
   }
 
-  // A single condition: a comparison, a NOT, or a TRUE/FALSE variable.
-  const condPart = e => e.k === 'cmp' || e.k === 'not' || e.k === 'var';
+  // A single condition: a comparison or a TRUE/FALSE variable. A NOT sits
+  // outside the brackets: (distance ≤ reach) AND NOT (isBedrock).
+  const condPart = e => e.k === 'cmp' || e.k === 'var';
   const bracket = html => '<span class="t-par">(</span>' + html + '<span class="t-par">)</span>';
   // Brackets around a whole IF condition when it is a single condition.
   TT.condTop = (e, html) => (TT.settings.parenConds && condPart(e) ? bracket(html) : html);
 
   TT.needParens = function (child, parent, right) {
-    if (TT.settings.parenConds && parent.k === 'logic' && condPart(child)) return true;
+    if (TT.settings.parenConds && (parent.k === 'logic' || parent.k === 'not') && condPart(child)) return true;
     if (child.k === 'not' && !child.on) child = child.x;
     const cp = prec(child), pp = prec(parent);
     if (cp === 9) return false;
@@ -227,9 +297,9 @@
     switch (e.k) {
       case 'lit': return TT.valHTML(e.value);
       case 'num': case 'bool': case 'str': return TT.valHTML(e.v);
-      case 'var': return '<span class="t-var">' + esc(e.name) + '</span>';
+      case 'var': return e.name ? '<span class="t-var">' + esc(e.name) + '</span>' : '<span class="t-blank">?</span>';
       case 'not': return '<span class="t-log">NOT</span> ' + paren(e.x, e, false);
-      default: return paren(e.a, e, false) + ' ' + opHTML(e) + ' ' + paren(e.b, e, true);
+      default: return paren(e.a, e, false) + ' ' + (e.op ? opHTML(e) : '<span class="t-blank">?</span>') + ' ' + paren(e.b, e, true);
     }
   };
   function paren(c, p, right) {
@@ -247,6 +317,11 @@
   TT.run = function* (prog, vars, ctx) {
     ctx.taken = {};
     ctx.outputs = [];
+    if (TT.programHasBlank(prog.body)) {
+      ctx.crashed = BLANK;
+      yield { kind: 'crash', message: BLANK };
+      return;
+    }
     try {
       yield* block(prog.body, vars, ctx);
     } catch (err) {
@@ -273,6 +348,8 @@
         } else if (s.k === 'if') {
           let taken = null;
           for (let i = 0; i < s.branches.length; i++) {
+            const problem = TT.check(s.branches[i].cond, vars);
+            if (problem) throw new Crash(problem);
             const r = TT.solve(s.branches[i].cond, vars, true);
             yield { kind: 'cond', sid: s.id, stmt: s, branch: i, lines: r.lines, value: r.value };
             if (r.value === true) {

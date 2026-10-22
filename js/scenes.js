@@ -1,7 +1,7 @@
 /* Scene pictures, drawn as SVG from the current variables.
    Each scene is draw(vals, ctx) where ctx = { fx, fresh, before, refs }:
-     fx     - the effect of the last OUTPUT that ran (or null)
-     fresh  - true only at the moment that OUTPUT runs, so animations play once
+     fx     - the effect of the last DISPLAY that ran (or null)
+     fresh  - true only at the moment that DISPLAY runs, so animations play once
      before - the variables at the start of the run (for "-25 gold" style pop-ups)
      refs   - named parts of the program (some pictures follow the code's numbers)
    Gradients and patterns are shared: they live in the hidden <svg> in index.html. */

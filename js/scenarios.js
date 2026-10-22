@@ -10,8 +10,9 @@
                (0 = IF, 1 = first ELSE IF, ..., 'else', or 'none').
 
    The Dig Site (kind: 'dig') is different: its program runs every frame
-   inside a 3D world (dig.js), and its challenges are checked each time a
-   block is mined, with { block, distance, vals, refs }. */
+   inside a 3D world (dig.js). Students fill in its blanks; the Test button
+   runs the finished code against `tests`, and challenges are checked each
+   time a block is mined, with { block, distance, vals, refs }. */
 (function () {
   'use strict';
   const TT = window.TT;
@@ -127,13 +128,25 @@
         { name: 'isBedrock', type: 'bool', init: false, role: 'calc' },
         { name: 'holdTime', type: 'num', init: 0, role: 'calc', unit: 'seconds' },
       ],
+      // Students fill in every ? and decide where NOT goes.
       code: B => [
         B.iff([
-          [B.and(B.cmp(B.v('distance'), '<=', B.v('reach'), 'reachCmp'), B.not(B.v('isBedrock'), 'not'), 'logic'), [
-            B.iff([[B.cmp(B.v('holdTime'), '>=', B.v('digTime'), 'doneCmp'), [B.out('Block mined!', 'mine')]]], null),
-          ]],
-          [B.v('isBedrock'), [B.out('Bedrock cannot be mined.', 'bedrock')]],
+          [B.blankLogic(B.maybeNot(B.blankCmp()), B.maybeNot(B.blankVar()), 'logic'), [
+            B.iff([[B.maybeNot(B.blankCmp()), [B.out('Block mined!', 'mine')],
+              'Mine the block once it has been held long enough']], null),
+          ], 'The block must be close enough AND not be bedrock'],
+          [B.maybeNot(B.blankVar()), [B.out('Bedrock cannot be mined.', 'bedrock')], 'Is the block bedrock?'],
         ], [B.out('Too far away!', 'far')], { main: true }),
+      ],
+      goal: 'Finish the code so every block can be mined except bedrock. Mining a block should take time.',
+      // The Test button runs the code with these values and compares what it does.
+      tests: [
+        { say: 'A block in reach, held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, holdTime: 1.5, digTime: 1 }, expect: 'Block mined!' },
+        { say: 'A block in reach, not held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, holdTime: 0.4, digTime: 1 }, expect: null },
+        { say: 'A block too far away', vals: { distance: 7, reach: 4.5, isBedrock: false, holdTime: 3, digTime: 1 }, expect: 'Too far away!' },
+        { say: 'Bedrock in reach', vals: { distance: 2, reach: 4.5, isBedrock: true, holdTime: 3, digTime: 1 }, expect: 'Bedrock cannot be mined.' },
+        { say: 'A far block with a long reach', vals: { distance: 6, reach: 8, isBedrock: false, holdTime: 2.5, digTime: 2 }, expect: 'Block mined!' },
+        { say: 'A slow block not held long enough', vals: { distance: 6, reach: 8, isBedrock: false, holdTime: 1.5, digTime: 2 }, expect: null },
       ],
       challenges: [
         { text: 'Mine a block.', check: e => true },
