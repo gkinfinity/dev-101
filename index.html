@@ -4,21 +4,47 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Turner’s Teach Tree — Learn to Code One Branch at a Time</title>
-  <meta name="description" content="Interactive pseudocode practice for computer science students: variables, IF / ELSE, comparisons, AND, OR and NOT. Change the inputs, edit the code blocks, and watch every condition get worked out step by step.">
-  <meta name="theme-color" content="#4f46e5">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%234f46e5'/%3E%3Cpath d='M32 50V34M32 34 18 21M32 34V17M32 34 46 21' stroke='%23c7d2fe' stroke-width='4' stroke-linecap='round' fill='none'/%3E%3Ccircle cx='32' cy='50' r='6' fill='white'/%3E%3Ccircle cx='18' cy='20' r='6' fill='white'/%3E%3Ccircle cx='46' cy='20' r='6' fill='white'/%3E%3Ccircle cx='32' cy='15' r='6.5' fill='%23fde047'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="css/style.css?v=2">
+  <meta name="description" content="Interactive pseudocode practice for computer science students: variables, IF / ELSE, comparisons, AND, OR and NOT. Change the inputs, rewrite the code, and watch every condition get worked out step by step.">
+  <meta name="theme-color" content="#020604">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23020604'/%3E%3Cpath d='M32 50V34M32 34 18 21M32 34V17M32 34 46 21' stroke='%2300ff6a' stroke-width='4' stroke-linecap='round' fill='none'/%3E%3Ccircle cx='32' cy='50' r='6' fill='%2300ff6a'/%3E%3Ccircle cx='18' cy='20' r='6' fill='%2300ff6a'/%3E%3Ccircle cx='46' cy='20' r='6' fill='%2300ff6a'/%3E%3Ccircle cx='32' cy='15' r='6.5' fill='%23e6ffee'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css?v=4">
 </head>
 <body>
+  <canvas id="rain" aria-hidden="true"></canvas>
+
+  <!-- Gradients and patterns shared by every scene picture (js/scenes.js). -->
+  <svg class="svg-defs" width="0" height="0" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="tt-g-suit" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2c3d55"/><stop offset="1" stop-color="#0e131b"/></linearGradient>
+      <linearGradient id="tt-g-wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b1f28"/><stop offset="1" stop-color="#0c0e13"/></linearGradient>
+      <linearGradient id="tt-g-floor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a2e38"/><stop offset="1" stop-color="#0e1015"/></linearGradient>
+      <linearGradient id="tt-g-wood" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#93622f"/><stop offset="1" stop-color="#4f2e14"/></linearGradient>
+      <linearGradient id="tt-g-metal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d5dce6"/><stop offset="1" stop-color="#5a6272"/></linearGradient>
+      <linearGradient id="tt-g-flame" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff1a8"/><stop offset=".45" stop-color="#ffb02e"/><stop offset="1" stop-color="#ff4d1f"/></linearGradient>
+      <radialGradient id="tt-g-torch"><stop offset="0" stop-color="#ffab3d" stop-opacity=".5"/><stop offset="1" stop-color="#ff7a1f" stop-opacity="0"/></radialGradient>
+      <linearGradient id="tt-g-light" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff8de"/><stop offset="1" stop-color="#ffc85a"/></linearGradient>
+      <linearGradient id="tt-g-space" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#01020a"/><stop offset="1" stop-color="#072230"/></linearGradient>
+      <radialGradient id="tt-g-shield"><stop offset="0" stop-color="#5effc8" stop-opacity=".03"/><stop offset=".78" stop-color="#5effc8" stop-opacity=".14"/><stop offset="1" stop-color="#5effc8" stop-opacity=".42"/></radialGradient>
+      <pattern id="tt-hex" width="56" height="100" patternUnits="userSpaceOnUse" patternTransform="scale(.22)"><path d="M28 66L0 50L0 16L28 0L56 16L56 50L28 66L28 100" fill="none" stroke="#5effc8" stroke-width="3"/></pattern>
+      <radialGradient id="tt-g-orb" cx=".4" cy=".35"><stop offset="0" stop-color="#ff9fb5"/><stop offset=".45" stop-color="#d1003a"/><stop offset="1" stop-color="#3d0010"/></radialGradient>
+      <linearGradient id="tt-g-alley" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b0516"/><stop offset="1" stop-color="#1d1036"/></linearGradient>
+      <linearGradient id="tt-g-counter" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b3344"/><stop offset="1" stop-color="#0b0f17"/></linearGradient>
+      <linearGradient id="tt-g-holo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5ef2ff" stop-opacity="0"/><stop offset="1" stop-color="#5ef2ff" stop-opacity=".38"/></linearGradient>
+      <radialGradient id="tt-g-haze"><stop offset="0" stop-color="#00ff6a" stop-opacity=".3"/><stop offset="1" stop-color="#00ff6a" stop-opacity="0"/></radialGradient>
+      <radialGradient id="tt-g-redhaze"><stop offset="0" stop-color="#ff3b6b" stop-opacity=".35"/><stop offset="1" stop-color="#ff3b6b" stop-opacity="0"/></radialGradient>
+      <linearGradient id="tt-g-day" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3f8fe0"/><stop offset="1" stop-color="#c3e6ff"/></linearGradient>
+    </defs>
+  </svg>
+
   <header class="topbar">
     <a class="brand" href="#/">
       <svg viewBox="0 0 64 64" aria-hidden="true">
-        <rect width="64" height="64" rx="15" fill="#4f46e5"/>
-        <path d="M32 50V34M32 34 18 21M32 34V17M32 34 46 21" stroke="#c7d2fe" stroke-width="4" stroke-linecap="round" fill="none"/>
-        <circle cx="32" cy="50" r="6" fill="#fff"/><circle cx="18" cy="20" r="6" fill="#fff"/>
-        <circle cx="46" cy="20" r="6" fill="#fff"/><circle cx="32" cy="15" r="6.5" fill="#fde047"/>
+        <rect width="64" height="64" rx="14" fill="#020604" stroke="#00ff6a" stroke-opacity=".5" stroke-width="2"/>
+        <path d="M32 50V34M32 34 18 21M32 34V17M32 34 46 21" stroke="#00ff6a" stroke-width="4" stroke-linecap="round" fill="none"/>
+        <circle cx="32" cy="50" r="6" fill="#00ff6a"/><circle cx="18" cy="20" r="6" fill="#00ff6a"/>
+        <circle cx="46" cy="20" r="6" fill="#00ff6a"/><circle cx="32" cy="15" r="6.5" fill="#e6ffee"/>
       </svg>
-      Turner’s Teach Tree
+      <span class="brand-name">Turner’s Teach Tree</span>
     </a>
     <nav class="nav" aria-label="Main">
       <a href="#/">Scenarios</a>
@@ -38,10 +64,12 @@
 
   <div id="toasts" aria-live="polite"></div>
 
-  <script src="js/engine.js?v=2"></script>
-  <script src="js/code.js?v=2"></script>
-  <script src="js/scenes.js?v=2"></script>
-  <script src="js/scenarios.js?v=2"></script>
-  <script src="js/app.js?v=2"></script>
+  <script src="js/engine.js?v=4"></script>
+  <script src="js/code.js?v=4"></script>
+  <script src="js/scenes.js?v=4"></script>
+  <script src="js/scenarios.js?v=4"></script>
+  <script src="js/dig.js?v=4"></script>
+  <script src="js/rain.js?v=4"></script>
+  <script src="js/app.js?v=4"></script>
 </body>
 </html>

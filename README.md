@@ -21,9 +21,22 @@ switches notation (`←` or `=` for assignment, `= ≠ ≤ ≥` or `== != <= >=`
 
 | page | what it does |
 |---|---|
-| Scenarios (home) | eight scenarios, each with challenges that check themselves |
+| Scenarios (home) | The Locked Door (OR, ELSE IF), Power-Up Shield (NOT), The Item Shop (AND, math) and The Dig Site (3D), each with challenges that check themselves |
 | Warm-Up | AND / OR / NOT with truth tables, a comparison tester, an assignment walkthrough, and a rapid-fire TRUE-or-FALSE quiz |
 | Cheat Sheet | every symbol and keyword on one page |
+
+## The Dig Site
+
+A small 3D block world drawn with WebGL (`js/dig.js`, no libraries). While the
+mouse button is held on a block, the pseudocode on the page runs once every
+frame with the live values of `distance`, `reach`, `isBedrock`, `holdTime`,
+`digTime` and `frameTime`. Students set `reach` and `digTime` with sliders and
+can rewrite the code while they play: AND to OR lets bedrock break, and
+switching off `holdTime ← 0` turns the pickaxe into a tunnel borer.
+
+Controls: click the world to play, **W A S D** to move, mouse to look, hold
+click to dig, **Space** to jump, **Esc** to get the mouse back. Without a
+mouse, the arrow keys look around and **F** digs.
 
 ## Running it
 

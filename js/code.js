@@ -146,6 +146,48 @@
     return h;
   }
 
+  /* One step of a run, written out for the step-by-step panel: { html, cls }. */
+  const work = lines => (lines.length ? '<div class="tr-work">' + lines.map(l => '<code>→ ' + l + '</code>').join('') + '</div>' : '');
+  const assignHTML = name => '<span class="t-var">' + esc(name) + '</span> <span class="t-op">' + esc(TT.settings.assign) + '</span> ';
+  function stmtText(s) {
+    if (s.k === 'set') return assignHTML(s.name) + TT.exprHTML(TT.strip(s.expr));
+    if (s.k === 'out') return '<span class="t-out">OUTPUT</span> <span class="t-str">"' + esc(s.text) + '"</span>';
+    return TT.condHTML(s, 0) + ' <span class="t-ctl">THEN</span> …';
+  }
+  TT.stepHTML = function (st, n) {
+    const num = '<span class="tr-n">' + n + '</span>';
+    const line = code => '<div class="tr-line">' + num + '<code>' + code + '</code></div>';
+    const note = html => '<div class="tr-note">' + html + '</div>';
+    const name = '<span class="t-var">' + esc(st.name || '') + '</span>';
+    switch (st.kind) {
+      case 'set':
+        return {
+          cls: 'k-set',
+          html: line(assignHTML(st.name) + st.lines[0]) + work(st.lines.slice(1)) +
+            note(st.before === st.after ? name + ' stays ' + TT.valHTML(st.after) : name + ' was ' + TT.valHTML(st.before) + ', now it is ' + TT.valHTML(st.after)),
+        };
+      case 'cond':
+        return {
+          cls: st.value ? 'k-true' : 'k-false',
+          html: line(TT.condHTML(st.stmt, st.branch)) + work(st.lines.slice(1)) +
+            note(st.value ? '<b class="ok">TRUE</b> — so the code inside runs.' : '<b class="no">FALSE</b> — so the code inside is skipped.'),
+        };
+      case 'else':
+        return { cls: 'k-true', html: line('<span class="t-ctl">ELSE</span>') + note('Nothing above was TRUE, so the <b>ELSE</b> part runs.') };
+      case 'none':
+        return { cls: 'k-false', html: line('<span class="t-ctl">END IF</span>') + note('Nothing was TRUE and there is no ELSE, so nothing inside this IF runs.') };
+      case 'out':
+        return { cls: 'k-out', html: line(stmtText(st.stmt)) + note('The message appears on the screen.') };
+      case 'off':
+        return { cls: 'k-off', html: '<div class="tr-line">' + num + '<code class="struck">' + stmtText(st.stmt) + '</code></div>' + note('This code is switched <b>off</b>, so the computer skips it.') };
+      case 'crash':
+        return { cls: 'k-crash', html: line('CRASH') + note(esc(st.message)) };
+      case 'done':
+        return { cls: 'k-done', html: '<div class="tr-line">' + num + '<b>Finished.</b></div>' };
+    }
+    return { cls: '', html: '' };
+  };
+
   /* Plain pseudocode (no controls) for text such as prediction choices. */
   TT.condText = function (s, branch) {
     if (branch === 'else') return 'ELSE';

@@ -37,6 +37,7 @@
     'Variables': 'var', 'Math': 'var',
     'IF / ELSE': 'ctl', 'ELSE IF': 'ctl',
     'Comparison': 'op', 'AND': 'op', 'OR': 'op', 'NOT': 'op', 'Booleans': 'op', 'Parentheses': 'op',
+    'Every frame': 'ctl',
   };
   const chips = list => list.map(c => '<span class="chip chip-' + (CHIP[c] || 'op') + '">' + esc(c) + '</span>').join('');
 
@@ -56,6 +57,13 @@
     el.classList.add('pulse');
   }
 
+  // Shared with the 3D page (dig.js).
+  TT.ui = {
+    chips, toast, notate, pulse, saveSettings,
+    progress: () => progress,
+    saveProgress: () => store.set('progress', progress),
+  };
+
   const initVals = sc => { const o = {}; sc.vars.forEach(v => { o[v.name] = v.init; }); return o; };
   const doneCount = sc => Object.keys(progress[sc.id] || {}).length;
 
@@ -69,7 +77,11 @@
       a.classList.toggle('active', href === id || (!href && TT.scenarios.some(s => s.id === id)));
     });
     const sc = TT.scenarios.find(s => s.id === id);
-    if (sc) scenarioPage(sc);
+    if (TT.rain) TT.rain.set(!(sc && sc.kind === 'dig'));
+    if (sc && sc.kind === 'dig') {
+      document.title = sc.title + ' — Turner’s Teach Tree';
+      cleanup = TT.digPage(sc, app, Object.assign({ prev: TT.scenarios[sc.num - 2] }, TT.ui));
+    } else if (sc) scenarioPage(sc);
     else if (id === 'warmup') warmupPage();
     else if (id === 'cheatsheet') cheatPage();
     else homePage();
@@ -86,7 +98,7 @@
       const done = doneCount(sc);
       const total = sc.challenges.length;
       return '<a class="card" href="#/' + sc.id + '">' +
-        '<div class="card-art">' + sc.scene(initVals(sc), { refs: prog.refs }) + '</div>' +
+        '<div class="card-art">' + sc.scene(initVals(sc), { refs: prog.refs }) + (sc.kind === 'dig' ? '<span class="card-new">3D</span>' : '') + '</div>' +
         '<div class="card-body">' +
         '<div class="card-top"><span class="card-num">' + sc.num + '</span><h3>' + esc(sc.title) + '</h3></div>' +
         '<p>' + esc(sc.blurb) + '</p>' +
@@ -100,8 +112,8 @@
       '<section class="intro">' +
       '<div class="intro-text">' +
       '<p class="kicker">Turner’s Teach Tree</p>' +
-      '<h1>Build the rules behind every jump, door and level-up.</h1>' +
-      '<p class="lead">Each scenario is a short piece of pseudocode that decides what happens on screen — whether a character can jump, whether a door opens, whether a guard spots you. Change the inputs, edit the code, and watch the computer work out every condition, one step at a time.</p>' +
+      '<h1 class="typed">Hack the rules of the world<span class="caret" aria-hidden="true"></span></h1>' +
+      '<p class="lead">Every scenario runs on a few lines of pseudocode: whether a vault door opens, whether a shield holds, whether you can afford the laser sword, and in a 3D block world, whether you can mine a block. Change the inputs, rewrite the code, and watch the computer work out every condition, one step at a time.</p>' +
       '<p class="pun">A <b>tech tree</b> unlocks new abilities one branch at a time. This is a <b>teach tree</b>: every scenario unlocks a new piece of programming — variables, math, comparisons, AND, OR and NOT.</p>' +
       '<div class="intro-ctas"><a class="btn btn-run" href="#/warmup">Start with the warm-up</a><a class="btn" href="#/' + TT.scenarios[0].id + '">Jump into scenario 1</a></div>' +
       '</div>' +
@@ -116,7 +128,8 @@
       '<details class="teacher"><summary>Tips for running this in class</summary><ul>' +
       '<li>Turn on <b>Predict first</b> on a scenario page. Students must pick which part of the IF will run before the code runs — great for a quick show of hands.</li>' +
       '<li>Use <b>Step</b> instead of Run to talk through one line at a time. The <b>Step by step</b> panel shows every condition being simplified, like working out a math problem.</li>' +
-      '<li>Each scenario has a deliberate "what if we change this?" bug: AND to OR in the jump, removing NOT on the shield, ≥ versus &gt; for coins, and a missing check on damage.</li>' +
+      '<li>Each scenario has a deliberate "what if we change this?" bug: removing NOT on the shield, ≥ versus &gt; in the shop, AND to OR at the Dig Site (suddenly bedrock breaks), and switching off <code>holdTime ← 0</code> (instant tunneling).</li>' +
+      '<li>The Dig Site is a real 3D world. Project it, set reach and digTime with the sliders, and let students call out what will happen before you try to mine. Students click into the world to play and press <b>Esc</b> to get their mouse back.</li>' +
       '<li>The ⚙ button switches notation: <code>←</code> or <code>=</code> for assignment, and <code>= ≠ ≤ ≥</code> or <code>== != &lt;= &gt;=</code> for comparisons, to match your course.</li>' +
       '<li>Challenge progress is saved in each student\'s own browser. Nothing is sent anywhere.</li>' +
       '</ul></details>';
@@ -310,55 +323,10 @@
       traceEl.scrollTop = traceEl.scrollHeight;
       return li;
     }
-    const num = () => '<span class="tr-n">' + ++stepNo + '</span>';
-    const work = lines => lines.length ? '<div class="tr-work">' + lines.map(l => '<code>→ ' + l + '</code>').join('') + '</div>' : '';
-    const assignHTML = name => '<span class="t-var">' + esc(name) + '</span> <span class="t-op">' + esc(TT.settings.assign) + '</span> ';
-
-    function stmtText(s) {
-      if (s.k === 'set') return assignHTML(s.name) + TT.exprHTML(TT.strip(s.expr));
-      if (s.k === 'out') return '<span class="t-out">OUTPUT</span> <span class="t-str">"' + esc(s.text) + '"</span>';
-      return TT.condHTML(s, 0) + ' <span class="t-ctl">THEN</span> …';
-    }
-
     function traceStep(st) {
-      switch (st.kind) {
-        case 'set': {
-          const same = st.before === st.after;
-          addTrace('<div class="tr-line">' + num() + '<code>' + assignHTML(st.name) + st.lines[0] + '</code></div>' + work(st.lines.slice(1)) +
-            '<div class="tr-note">' + (same
-              ? '<span class="t-var">' + esc(st.name) + '</span> stays ' + TT.valHTML(st.after)
-              : '<span class="t-var">' + esc(st.name) + '</span> was ' + TT.valHTML(st.before) + ', now it is ' + TT.valHTML(st.after)) + '</div>', 'k-set');
-          break;
-        }
-        case 'cond':
-          addTrace('<div class="tr-line">' + num() + '<code>' + TT.condHTML(st.stmt, st.branch) + '</code></div>' + work(st.lines.slice(1)) +
-            '<div class="tr-note">' + (st.value
-              ? '<b class="ok">TRUE</b> — so the code inside runs.'
-              : '<b class="no">FALSE</b> — so the code inside is skipped.') + '</div>', st.value ? 'k-true' : 'k-false');
-          break;
-        case 'else':
-          addTrace('<div class="tr-line">' + num() + '<code><span class="t-ctl">ELSE</span></code></div>' +
-            '<div class="tr-note">Nothing above was TRUE, so the <b>ELSE</b> part runs.</div>', 'k-true');
-          break;
-        case 'none':
-          addTrace('<div class="tr-line">' + num() + '<code><span class="t-ctl">END IF</span></code></div>' +
-            '<div class="tr-note">Nothing was TRUE and there is no ELSE, so nothing inside this IF runs.</div>', 'k-false');
-          break;
-        case 'out':
-          addTrace('<div class="tr-line">' + num() + '<code>' + stmtText(st.stmt) + '</code></div>' +
-            '<div class="tr-note">The message appears on the screen.</div>', 'k-out');
-          break;
-        case 'off':
-          addTrace('<div class="tr-line">' + num() + '<code class="struck">' + stmtText(st.stmt) + '</code></div>' +
-            '<div class="tr-note">This code is switched <b>off</b>, so the computer skips it.</div>', 'k-off');
-          break;
-        case 'crash':
-          addTrace('<div class="tr-line">' + num() + '<code>CRASH</code></div><div class="tr-note">' + esc(st.message) + '</div>', 'k-crash');
-          break;
-        case 'done':
-          addTrace('<div class="tr-line"><span class="tr-n">✓</span><b>Finished.</b></div>', 'k-done');
-          break;
-      }
+      if (st.kind === 'endif') return;
+      const h = TT.stepHTML(st, st.kind === 'done' ? '✓' : ++stepNo);
+      addTrace(h.html, h.cls);
     }
 
     /* ----- running ----- */
