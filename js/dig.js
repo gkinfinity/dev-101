@@ -323,7 +323,7 @@
       '<a class="back-link" href="#/">← All scenarios</a>' +
       '<div class="sc-title"><span class="sc-num">' + sc.num + '</span><div><h1>' + esc(sc.title) + '</h1>' +
       '<div class="chips">' + ui.chips(sc.concepts) + '</div></div></div>' +
-      '<p class="story">' + esc(sc.story) + '</p></div>' +
+      '</div>' +
       '<div class="dig-cols">' +
       '<div class="col">' +
       '<section class="panel p-world">' +
@@ -337,28 +337,25 @@
       '<rect x="55" y="38" width="10" height="78" rx="3" fill="#8b5a2b" stroke="#3b200c" stroke-width="2"/>' +
       '<path d="M14,44 Q60,14 106,44 L100,52 Q60,30 20,52Z" fill="#5ef2ff" stroke="#127c8c" stroke-width="2.5"/></g></svg></div>' +
       '<div class="w-overlay" id="w-overlay"><button type="button" class="btn btn-run" id="enter">▶ Enter the world</button>' +
-      '<p><b>W A S D</b> move · <b>mouse</b> look · <b>hold click</b> dig · <b>space</b> jump · <b>Esc</b> get your mouse back</p>' +
-      '<p class="muted small">No mouse? Arrow keys look around and <b>F</b> digs.</p></div>' +
-      '<div class="w-overlay" id="no-gl" hidden><p>This browser cannot draw 3D (WebGL is turned off). The rest of the page still works.</p></div>' +
+      '<p><b>WASD</b> move · <b>mouse</b> look · <b>hold click</b> dig · <b>space</b> jump · <b>Esc</b> exit</p>' +
+      '<p class="muted small"><b>arrow keys</b> look · <b>F</b> dig</p></div>' +
+      '<div class="w-overlay" id="no-gl" hidden><p>3D is not available in this browser.</p></div>' +
       '</div>' +
       '<div class="screen-out" id="out"><span class="out-label">OUTPUT</span><span class="out-text"><i>nothing yet</i></span></div>' +
-      '<div class="world-tools"><label class="mini"><input type="checkbox" id="show-reach"' + (S.showReach ? ' checked' : '') + '> Show blocks in reach</label>' +
-      '<button type="button" class="btn btn-ghost" id="respawn">⤒ Back to the start</button>' +
+      '<div class="world-tools"><label class="mini"><input type="checkbox" id="show-reach"' + (S.showReach ? ' checked' : '') + '> Show reach</label>' +
+      '<button type="button" class="btn btn-ghost" id="respawn">⤒ Respawn</button>' +
       '<button type="button" class="btn btn-ghost" id="new-world">↺ New world</button></div>' +
       '</section>' +
-      '<section class="panel p-mem"><div class="panel-head"><h2>Memory</h2><span class="panel-sub">drag the sliders · the rest change by themselves</span></div>' +
+      '<section class="panel p-mem"><div class="panel-head"><h2>Memory</h2></div>' +
       '<div class="mem" id="mem"></div></section>' +
       '<section class="panel p-chal"><div class="panel-head"><h2>Challenges</h2><span class="panel-sub" id="chal-count"></span></div><ol class="chal" id="chal"></ol></section>' +
-      '<section class="panel p-think"><div class="panel-head"><h2>Think about it</h2></div><ul class="think">' +
-      sc.think.map(t => '<li>' + ui.notate(t) + '</li>').join('') + '</ul></section>' +
       '</div>' +
       '<div class="col">' +
       '<section class="panel p-code" id="code-panel"><div class="panel-head"><h2>Code</h2><span class="every-frame">runs every frame</span>' +
       '<div class="seg" role="group" aria-label="How to show the code"><button type="button" data-view="blocks">Blocks</button><button type="button" data-view="pseudo">Pseudocode</button></div></div>' +
       '<div class="code-wrap" id="code"></div>' +
-      '<div class="undo-bar" id="undo" hidden><span>✎ You changed the code.</span> <button type="button" class="link-btn" id="undo-btn">Undo my changes</button></div>' +
-      '<p class="code-hint">Change an operator, a number or NOT and go try it in the world. The code is live.</p></section>' +
-      '<section class="panel p-trace"><div class="panel-head"><h2>This frame</h2><span class="panel-sub">what the computer just worked out</span></div>' +
+      '<div class="undo-bar" id="undo" hidden><button type="button" class="link-btn" id="undo-btn">Undo code changes</button></div></section>' +
+      '<section class="panel p-trace"><div class="panel-head"><h2>This frame</h2></div>' +
       '<ol class="trace" id="trace"></ol></section>' +
       '</div></div>' +
       '<nav class="pager">' + (ui.prev ? '<a class="btn btn-ghost" href="#/' + ui.prev.id + '">← ' + esc(ui.prev.title) + '</a>' : '<span></span>') +
@@ -447,10 +444,10 @@
           return '<div class="box box-slider"><div class="box-top"><span class="box-name">' + vd.name + '</span><span class="vb vb-n" id="sv-' + vd.name + '">' +
             TT.fmt(S.vals[vd.name]) + '</span><span class="unit">' + vd.unit + '</span></div>' +
             '<input type="range" min="' + vd.min + '" max="' + vd.max + '" step="' + vd.step + '" value="' + S.vals[vd.name] + '" data-var="' + vd.name + '" aria-label="' + vd.name + '">' +
-            '<div class="box-hint">' + esc(vd.hint) + '</div></div>';
+            '</div>';
         }
         return '<div class="box role-' + role + '"><div class="box-top"><span class="box-name">' + vd.name + '</span></div>' +
-          '<div class="mem-val" id="mv-' + vd.name + '"></div><div class="box-hint">' + esc(vd.hint) + '</div></div>';
+          '<div class="mem-val" id="mv-' + vd.name + '"></div></div>';
       }).join('');
       updateMem();
     }
@@ -500,7 +497,7 @@
       if (!newly.length) return;
       ui.saveProgress();
       drawChallenges(newly);
-      newly.forEach(i => ui.toast('⭐ Challenge ' + (i + 1) + ' complete!', 'good'));
+      newly.forEach(i => ui.toast('Challenge ' + (i + 1) + ' done', 'good'));
     }
 
     function setOut(text, kind) {
@@ -511,7 +508,7 @@
     drawCode();
     drawMem();
     drawChallenges();
-    traceEl.innerHTML = '<li class="tr-empty">Enter the world and hold the mouse button on a block. Each frame, this panel shows what the code worked out.</li>';
+    traceEl.innerHTML = '';
 
     /* ----- WebGL setup ----- */
     const gl = canvas.getContext('webgl', { antialias: true, alpha: false }) || canvas.getContext('experimental-webgl');
@@ -788,8 +785,7 @@
           const sig = r.lines.join('');
           if (sig !== previewLines) {
             previewLines = sig;
-            traceEl.innerHTML = '<li class="tr k-predict"><div class="tr-line"><span class="tr-n">?</span><span>Not digging. If you held the button now, the first check would be:</span></div>' +
-              '<div class="tr-work">' + r.lines.map((l, i) => '<code>' + (i ? '→ ' : '') + l + '</code>').join('') + '</div></li>';
+            traceEl.innerHTML = '<li class="tr k-predict"><div class="tr-work">' + r.lines.map((l, i) => '<code>' + (i ? '→ ' : '') + l + '</code>').join('') + '</div></li>';
           }
         }
       }

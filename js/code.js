@@ -164,26 +164,25 @@
         return {
           cls: 'k-set',
           html: line(assignHTML(st.name) + st.lines[0]) + work(st.lines.slice(1)) +
-            note(st.before === st.after ? name + ' stays ' + TT.valHTML(st.after) : name + ' was ' + TT.valHTML(st.before) + ', now it is ' + TT.valHTML(st.after)),
+            note(name + ' was ' + TT.valHTML(st.before)),
         };
       case 'cond':
         return {
           cls: st.value ? 'k-true' : 'k-false',
-          html: line(TT.condHTML(st.stmt, st.branch)) + work(st.lines.slice(1)) +
-            note(st.value ? '<b class="ok">TRUE</b> — so the code inside runs.' : '<b class="no">FALSE</b> — so the code inside is skipped.'),
+          html: line(TT.condHTML(st.stmt, st.branch)) + work(st.lines.slice(1)),
         };
       case 'else':
-        return { cls: 'k-true', html: line('<span class="t-ctl">ELSE</span>') + note('Nothing above was TRUE, so the <b>ELSE</b> part runs.') };
+        return { cls: 'k-true', html: line('<span class="t-ctl">ELSE</span>') };
       case 'none':
-        return { cls: 'k-false', html: line('<span class="t-ctl">END IF</span>') + note('Nothing was TRUE and there is no ELSE, so nothing inside this IF runs.') };
+        return { cls: 'k-false', html: line('<span class="t-ctl">END IF</span>') };
       case 'out':
-        return { cls: 'k-out', html: line(stmtText(st.stmt)) + note('The message appears on the screen.') };
+        return { cls: 'k-out', html: line(stmtText(st.stmt)) };
       case 'off':
-        return { cls: 'k-off', html: '<div class="tr-line">' + num + '<code class="struck">' + stmtText(st.stmt) + '</code></div>' + note('This code is switched <b>off</b>, so the computer skips it.') };
+        return { cls: 'k-off', html: '<div class="tr-line">' + num + '<code class="struck">' + stmtText(st.stmt) + '</code></div>' + note('off') };
       case 'crash':
         return { cls: 'k-crash', html: line('CRASH') + note(esc(st.message)) };
       case 'done':
-        return { cls: 'k-done', html: '<div class="tr-line">' + num + '<b>Finished.</b></div>' };
+        return { cls: 'k-done', html: '<div class="tr-line">' + num + '<b>Done</b></div>' };
     }
     return { cls: '', html: '' };
   };
@@ -191,12 +190,12 @@
   /* Plain pseudocode (no controls) for text such as prediction choices. */
   TT.condText = function (s, branch) {
     if (branch === 'else') return 'ELSE';
-    if (branch === 'none') return 'Nothing — no part runs';
+    if (branch === 'none') return 'Nothing';
     return (branch ? 'ELSE IF ' : 'IF ') + TT.exprText(s.branches[branch].cond);
   };
   TT.condHTML = function (s, branch) {
     if (branch === 'else') return '<span class="t-ctl">ELSE</span>';
-    if (branch === 'none') return 'Nothing — no part of the IF runs';
+    if (branch === 'none') return 'Nothing';
     return '<span class="t-ctl">' + (branch ? 'ELSE IF' : 'IF') + '</span> ' + TT.exprHTML(TT.strip(s.branches[branch].cond));
   };
 })();

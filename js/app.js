@@ -92,7 +92,7 @@
   /* Home                                                                   */
   /* ===================================================================== */
   function homePage() {
-    document.title = 'Turner’s Teach Tree — Learn to Code One Branch at a Time';
+    document.title = 'Turner’s Teach Tree';
     const cards = TT.scenarios.map(sc => {
       const prog = TT.prepare(sc.code(B));
       const done = doneCount(sc);
@@ -101,38 +101,13 @@
         '<div class="card-art">' + sc.scene(initVals(sc), { refs: prog.refs }) + (sc.kind === 'dig' ? '<span class="card-new">3D</span>' : '') + '</div>' +
         '<div class="card-body">' +
         '<div class="card-top"><span class="card-num">' + sc.num + '</span><h3>' + esc(sc.title) + '</h3></div>' +
-        '<p>' + esc(sc.blurb) + '</p>' +
         '<div class="chips">' + chips(sc.concepts) + '</div>' +
         '<div class="card-progress' + (done === total ? ' all' : '') + '">' +
-        (done ? (done === total ? '★ All challenges done' : done + ' of ' + total + ' challenges done') : total + ' challenges') +
+        'Challenges ' + done + '/' + total +
         '</div></div></a>';
     }).join('');
 
-    app.innerHTML =
-      '<section class="intro">' +
-      '<div class="intro-text">' +
-      '<p class="kicker">Turner’s Teach Tree</p>' +
-      '<h1 class="typed">Hack the rules of the world<span class="caret" aria-hidden="true"></span></h1>' +
-      '<p class="lead">Every scenario runs on a few lines of pseudocode: whether a vault door opens, whether a shield holds, whether you can afford the laser sword, and in a 3D block world, whether you can mine a block. Change the inputs, rewrite the code, and watch the computer work out every condition, one step at a time.</p>' +
-      '<p class="pun">A <b>tech tree</b> unlocks new abilities one branch at a time. This is a <b>teach tree</b>: every scenario unlocks a new piece of programming — variables, math, comparisons, AND, OR and NOT.</p>' +
-      '<div class="intro-ctas"><a class="btn btn-run" href="#/warmup">Start with the warm-up</a><a class="btn" href="#/' + TT.scenarios[0].id + '">Jump into scenario 1</a></div>' +
-      '</div>' +
-      '<ol class="how">' +
-      '<li><b>Set the memory.</b> Click a variable to change it, or pick a ready-made situation.</li>' +
-      '<li><b>Predict.</b> Which part of the IF will run? Decide before you click.</li>' +
-      '<li><b>Run or Step.</b> Watch each condition get worked out until it is TRUE or FALSE.</li>' +
-      '<li><b>Change the code.</b> Swap AND for OR, change ' + esc(TT.sym('>=')) + ' to &gt;, switch off a NOT — and see what breaks.</li>' +
-      '</ol></section>' +
-      '<h2 class="section-title">Scenarios</h2>' +
-      '<div class="cards">' + cards + '</div>' +
-      '<details class="teacher"><summary>Tips for running this in class</summary><ul>' +
-      '<li>Turn on <b>Predict first</b> on a scenario page. Students must pick which part of the IF will run before the code runs — great for a quick show of hands.</li>' +
-      '<li>Use <b>Step</b> instead of Run to talk through one line at a time. The <b>Step by step</b> panel shows every condition being simplified, like working out a math problem.</li>' +
-      '<li>Each scenario has a deliberate "what if we change this?" bug: removing NOT on the shield, ≥ versus &gt; in the shop, AND to OR at the Dig Site (suddenly bedrock breaks), and switching off <code>holdTime ← 0</code> (instant tunneling).</li>' +
-      '<li>The Dig Site is a real 3D world. Project it, set reach and digTime with the sliders, and let students call out what will happen before you try to mine. Students click into the world to play and press <b>Esc</b> to get their mouse back.</li>' +
-      '<li>The ⚙ button switches notation: <code>←</code> or <code>=</code> for assignment, and <code>= ≠ ≤ ≥</code> or <code>== != &lt;= &gt;=</code> for comparisons, to match your course.</li>' +
-      '<li>Challenge progress is saved in each student\'s own browser. Nothing is sent anywhere.</li>' +
-      '</ul></details>';
+    app.innerHTML = '<div class="cards">' + cards + '</div>';
   }
 
   /* ===================================================================== */
@@ -157,23 +132,21 @@
       '<a class="back-link" href="#/">← All scenarios</a>' +
       '<div class="sc-title"><span class="sc-num">' + sc.num + '</span><div><h1>' + esc(sc.title) + '</h1>' +
       '<div class="chips">' + chips(sc.concepts) + '</div></div></div>' +
-      '<p class="story">' + esc(sc.story) + '</p></div>' +
+      '</div>' +
       '<div class="sc-cols">' +
       '<div class="col">' +
       '<section class="panel p-scene">' +
       '<div class="scene" id="scene"></div>' +
       '<div class="screen-out" id="out"></div>' +
-      '<div class="presets"><span class="presets-label">Try a situation:</span>' +
+      '<div class="presets">' +
       sc.presets.map((p, i) => '<button type="button" class="chip-btn' + (p.run ? ' runs' : '') + '" data-preset="' + i + '">' +
         (p.run ? '<span aria-hidden="true">▶ </span>' : '') + esc(p.label) + '</button>').join('') + '</div>' +
       '</section>' +
       '<section class="panel p-mem">' +
-      '<div class="panel-head"><h2>Memory</h2><span class="panel-sub">each box is a variable — click to change it</span></div>' +
+      '<div class="panel-head"><h2>Memory</h2></div>' +
       '<div class="mem" id="mem"></div></section>' +
       '<section class="panel p-chal"><div class="panel-head"><h2>Challenges</h2><span class="panel-sub" id="chal-count"></span></div>' +
       '<ol class="chal" id="chal"></ol></section>' +
-      '<section class="panel p-think"><div class="panel-head"><h2>Think about it</h2></div>' +
-      '<ul class="think">' + sc.think.map(t => '<li>' + notate(t) + '</li>').join('') + '</ul></section>' +
       '</div>' +
       '<div class="col">' +
       '<section class="panel p-code" id="code-panel">' +
@@ -189,10 +162,9 @@
       '<label class="mini">Speed <select id="speed">' + speedOpts + '</select></label>' +
       '</div>' +
       '<div class="code-wrap" id="code"></div>' +
-      '<div class="undo-bar" id="undo" hidden><span>✎ You changed the code.</span> <button type="button" class="link-btn" id="undo-btn">Undo my changes</button></div>' +
-      '<p class="code-hint">Click an operator like <b>AND</b> or <b>' + esc(TT.sym('>=')) + '</b>, a number, or <b>NOT</b> to change the code.</p>' +
+      '<div class="undo-bar" id="undo" hidden><button type="button" class="link-btn" id="undo-btn">Undo code changes</button></div>' +
       '</section>' +
-      '<section class="panel p-trace"><div class="panel-head"><h2>Step by step</h2><span class="panel-sub">what the computer is thinking</span></div>' +
+      '<section class="panel p-trace"><div class="panel-head"><h2>Step by step</h2></div>' +
       '<ol class="trace" id="trace"></ol></section>' +
       '</div></div>' +
       '<nav class="pager">' +
@@ -245,10 +217,9 @@
             '<button type="button" class="nb" data-inc="' + vd.name + '" aria-label="Make ' + vd.name + ' bigger"' + dis + '>+</button></div>';
         }
         const ch = Object.prototype.hasOwnProperty.call(changed, vd.name);
-        const tag = role === 'calc' ? 'worked out by the code' : role === 'output' ? 'set by the code' : '';
         return '<div class="box role-' + role + (ch ? ' changed' : '') + '">' +
           '<div class="box-top"><span class="box-name">' + esc(vd.name) + '</span></div>' + ctl +
-          '<div class="box-hint">' + (ch ? 'was ' + esc(TT.fmt(changed[vd.name])) : esc(tag || vd.hint || '')) + '</div></div>';
+          '<div class="box-hint">' + (ch ? 'was ' + esc(TT.fmt(changed[vd.name])) : '') + '</div></div>';
       }).join('');
     }
 
@@ -272,7 +243,7 @@
     }
 
     function traceEmpty() {
-      traceEl.innerHTML = '<li class="tr-empty">Press <b>Run</b> to watch the computer work through the code, or <b>Step</b> to go one line at a time.</li>';
+      traceEl.innerHTML = '';
     }
 
     /* ----- highlighting the running code ----- */
@@ -405,7 +376,7 @@
       stepNo = 0;
       setOut(null);
       if (prediction !== undefined) {
-        addTrace('<div class="tr-line"><span class="tr-n">?</span><span>Your prediction: <code>' + TT.condHTML(P.prog.main, prediction) + '</code></span></div>', 'k-predict');
+        addTrace('<div class="tr-line"><span class="tr-n">?</span><span>Prediction: <code>' + TT.condHTML(P.prog.main, prediction) + '</code></span></div>', 'k-predict');
       }
       drawMem(R.work);
       updateButtons();
@@ -437,7 +408,6 @@
         P.vals = R.work;
         Object.keys(R.before).forEach(k => { if (R.before[k] !== R.work[k]) changed[k] = R.before[k]; });
       } else {
-        addTrace('<div class="tr-note">Because the program crashed, none of the changes were kept.</div>', 'k-crash');
       }
       P.lastBefore = R.before;
       drawMem(P.vals, changed);
@@ -446,10 +416,10 @@
       if (R.prediction !== undefined && main !== undefined) {
         const ok = R.prediction === main;
         addTrace('<div class="verdict">' + (ok
-          ? '<b class="ok">Your prediction was right!</b>'
-          : '<b class="no">Not this time.</b> You picked <code>' + TT.condHTML(P.prog.main, R.prediction) + '</code> but <code>' +
+          ? '<b class="ok">Correct</b>'
+          : '<b class="no">Wrong:</b> <code>' +
             TT.condHTML(P.prog.main, main) + '</code> ran.') + '</div>', ok ? 'k-true' : 'k-false');
-        toast(ok ? '🎯 Prediction correct!' : 'Prediction missed — check the step-by-step panel.', ok ? 'good' : 'bad');
+        toast(ok ? 'Correct' : 'Wrong', ok ? 'good' : 'bad');
       }
       if (!R.ctx.crashed) checkChallenges({ before: R.before, after: P.vals, main, refs: P.prog.refs });
       updateButtons();
@@ -461,7 +431,7 @@
       clearTimeout(R.timer);
       P.run = null;
       P.fx = null;
-      addTrace('<div class="tr-note">Stopped. The memory was put back to how it was before this run.</div>', 'k-off');
+      addTrace('<div class="tr-note">Stopped.</div>', 'k-off');
       clearMarks();
       drawMem(P.vals);
       drawScene(P.vals, false);
@@ -492,7 +462,7 @@
       if (!newly.length) return;
       store.set('progress', progress);
       drawChallenges(newly);
-      newly.forEach(i => toast('⭐ Challenge ' + (i + 1) + ' complete!', 'good'));
+      newly.forEach(i => toast('Challenge ' + (i + 1) + ' done', 'good'));
     }
 
     function askPredict(cb) {
@@ -501,8 +471,7 @@
       const back = document.createElement('div');
       back.className = 'modal-back';
       back.innerHTML = '<div class="modal" role="dialog" aria-modal="true" aria-labelledby="pq">' +
-        '<h2 id="pq">Predict: which part will run?</h2>' +
-        '<p class="muted">Look at the memory and the code, then make your guess.</p>' +
+        '<h2 id="pq">Which part will run?</h2>' +
         '<div class="pred-opts">' + opts.map(o => '<button type="button" class="pred" data-o="' + o + '"><code>' + TT.condHTML(s, o) + '</code></button>').join('') + '</div>' +
         '<div class="modal-foot"><button type="button" class="link-btn" data-cancel>Cancel</button></div></div>';
       document.body.appendChild(back);
@@ -675,33 +644,29 @@
     const opOptions = TT.OPS.cmp.map(o => '<option value="' + esc(o) + '"' + (o === W.op ? ' selected' : '') + '>' + esc(TT.sym(o)) + '</option>').join('');
 
     app.innerHTML =
-      '<div class="page-head"><a class="back-link" href="#/">← All scenarios</a><h1>Logic Warm-Up</h1>' +
-      '<p class="lead">Four quick tools to review AND, OR, NOT, comparisons and assignment — then a rapid-fire quiz.</p></div>' +
+      '<div class="page-head"><a class="back-link" href="#/">← All scenarios</a><h1>Warm-Up</h1></div>' +
       '<div class="warm-grid">' +
       // 1 logic
-      '<section class="panel"><div class="panel-head"><h2>1 · AND, OR, NOT</h2></div>' +
+      '<section class="panel"><div class="panel-head"><h2>AND, OR, NOT</h2></div>' +
       '<div class="ab-row"><div class="box"><div class="box-top"><span class="box-name">A</span></div><div id="wa"></div></div>' +
       '<div class="box"><div class="box-top"><span class="box-name">B</span></div><div id="wb"></div></div></div>' +
       '<div class="logic-out" id="wl"></div>' +
-      '<table class="tt" id="wtt"></table><p class="muted small">Click a row to try it.</p></section>' +
+      '<table class="tt" id="wtt"></table></section>' +
       // 2 comparisons
-      '<section class="panel"><div class="panel-head"><h2>2 · Comparisons</h2></div>' +
+      '<section class="panel"><div class="panel-head"><h2>Comparisons</h2></div>' +
       '<div class="cmp-row"><input type="number" id="wx" value="' + W.x + '" aria-label="left number">' +
       '<select id="wop" class="op big-op" aria-label="comparison">' + opOptions + '</select>' +
       '<input type="number" id="wy" value="' + W.y + '" aria-label="right number"><span class="arrow">→</span><span id="wcr"></span></div>' +
-      '<p class="cmp-words" id="wcw"></p>' +
       '<div class="cmp-grid" id="wcg"></div></section>' +
       // 3 assignment
-      '<section class="panel"><div class="panel-head"><h2>3 · Assignment</h2><span class="panel-sub">changing a variable</span></div>' +
+      '<section class="panel"><div class="panel-head"><h2>Assignment</h2></div>' +
       '<div class="assign-line"><code class="assign-code">' + assignLine() + '</code>' +
       '<button type="button" class="btn btn-run" id="wrun">▶ Run this line</button><button type="button" class="btn btn-ghost" id="wreset" title="Set score back to 10">↺</button></div>' +
       '<div class="assign-demo"><div class="box big"><div class="box-top"><span class="box-name">score</span></div><div class="mem-val" id="wscore"></div></div>' +
-      '<ol class="assign-steps" id="wsteps"></ol></div>' +
-      '<p class="muted small">In math class, <code>score = score + 5</code> could never be true. In code, <code>' + esc(TT.settings.assign) +
-      '</code> means <b>store</b>: the right side is worked out first using the OLD value, then the answer replaces it.</p></section>' +
+      '<ol class="assign-steps" id="wsteps"></ol></div></section>' +
       // 4 quiz
-      '<section class="panel quiz-panel"><div class="panel-head"><h2>4 · Rapid fire: TRUE or FALSE?</h2><span class="panel-sub" id="wqs"></span></div>' +
-      '<div class="quiz" id="wq"></div><p class="muted small">Keyboard: <b>T</b> = TRUE, <b>F</b> = FALSE, <b>Enter</b> = next. Questions get harder as your streak grows.</p></section>' +
+      '<section class="panel quiz-panel"><div class="panel-head"><h2>TRUE or FALSE?</h2><span class="panel-sub" id="wqs"></span></div>' +
+      '<div class="quiz" id="wq"></div></section>' +
       '</div>';
 
     function assignLine() {
@@ -715,12 +680,12 @@
 
     function drawLogic() {
       tog('#wa', W.a); tog('#wb', W.b);
-      const row = (expr, val, words) => '<div class="lo-row"><code>' + expr + '</code><span class="arrow">→</span>' + TT.valHTML(val) + '<span class="lo-words">' + words + '</span></div>';
+      const row = (expr, val) => '<div class="lo-row"><code>' + expr + '</code><span class="arrow">→</span>' + TT.valHTML(val) + '</div>';
       const A = '<span class="t-var">A</span>', Bv = '<span class="t-var">B</span>';
       $('#wl').innerHTML =
-        row(A + ' <span class="t-log">AND</span> ' + Bv, W.a && W.b, 'TRUE only when <b>both</b> are TRUE') +
-        row(A + ' <span class="t-log">OR</span> ' + Bv, W.a || W.b, 'TRUE when <b>at least one</b> is TRUE') +
-        row('<span class="t-log">NOT</span> ' + A, !W.a, '<b>flips</b> TRUE and FALSE');
+        row(A + ' <span class="t-log">AND</span> ' + Bv, W.a && W.b) +
+        row(A + ' <span class="t-log">OR</span> ' + Bv, W.a || W.b) +
+        row('<span class="t-log">NOT</span> ' + A, !W.a);
       const rows = [[true, true], [true, false], [false, true], [false, false]];
       $('#wtt').innerHTML = '<thead><tr><th>A</th><th>B</th><th>A AND B</th><th>A OR B</th><th>NOT A</th></tr></thead><tbody>' +
         rows.map(([a, b]) => '<tr data-a="' + a + '" data-b="' + b + '" class="' + (a === W.a && b === W.b ? 'cur' : '') + '">' +
@@ -739,7 +704,6 @@
       const x = W.x, y = W.y;
       const res = TT.evaluate(B.cmp(x, W.op, y), {});
       $('#wcr').innerHTML = TT.valHTML(res);
-      $('#wcw').innerHTML = 'Is ' + x + ' <b>' + TT.opWords(W.op) + '</b> ' + y + '? ' + (res ? 'Yes, so it is TRUE.' : 'No, so it is FALSE.');
       $('#wcg').innerHTML = TT.OPS.cmp.map(o => {
         const v = TT.evaluate(B.cmp(x, o, y), {});
         return '<button type="button" class="cmp-cell' + (o === W.op ? ' cur' : '') + '" data-op="' + esc(o) + '"><code>' + x + ' ' + esc(TT.sym(o)) + ' ' + y + '</code>' + TT.valHTML(v) + '</button>';
@@ -765,9 +729,9 @@
     }
     function stepsList(active, oldV, add, newV) {
       const items = [
-        'Look up <span class="t-var">score</span>' + (active >= 1 ? ': it holds <b>' + TT.fmt(oldV) + '</b>' : ''),
-        'Work out the right side' + (active >= 2 ? ': <code>' + TT.fmt(oldV) + ' + ' + TT.fmt(add) + '</code> = <b>' + TT.fmt(newV) + '</b>' : ''),
-        'Store the answer in <span class="t-var">score</span>' + (active >= 3 ? ' — the old ' + TT.fmt(oldV) + ' is replaced by <b>' + TT.fmt(newV) + '</b>' : ''),
+        '<span class="t-var">score</span>' + (active >= 1 ? ' = <b>' + TT.fmt(oldV) + '</b>' : ''),
+        (active >= 2 ? '<code>' + TT.fmt(oldV) + ' + ' + TT.fmt(add) + '</code> = <b>' + TT.fmt(newV) + '</b>' : 'score + ' + TT.fmt(add)),
+        '<span class="t-var">score</span> ' + esc(TT.settings.assign) + (active >= 3 ? ' <b>' + TT.fmt(newV) + '</b>' : ''),
       ];
       $('#wsteps').innerHTML = items.map((t, i) => '<li class="' + (i + 1 === active ? 'cur' : i + 1 < active ? 'past' : '') + '">' + t + '</li>').join('');
     }
@@ -795,7 +759,7 @@
       drawQS();
     }
     function drawQS() {
-      $('#wqs').textContent = 'level ' + (level() + 1) + ' · streak ' + W.streak + ' · best ' + W.best;
+      $('#wqs').textContent = 'streak ' + W.streak + ' · best ' + W.best;
     }
     function answer(a) {
       if (answered) return;
@@ -808,9 +772,9 @@
         b.disabled = true;
         if ((b.dataset.a === '1') === r.value) b.classList.add('correct');
       });
-      $('#wqfb').innerHTML = '<div class="q-verdict ' + (ok ? 'ok' : 'no') + '">' + (ok ? 'Correct!' : 'Not quite.') + ' It is ' + TT.valHTML(r.value) + '.</div>' +
+      $('#wqfb').innerHTML = '<div class="q-verdict ' + (ok ? 'ok' : 'no') + '">' + (ok ? 'Correct' : 'Wrong') + '</div>' +
         '<div class="tr-work">' + r.lines.slice(1).map(l => '<code>→ ' + l + '</code>').join('') + '</div>' +
-        '<button type="button" class="btn" id="wnext">Next question →</button>';
+        '<button type="button" class="btn" id="wnext">Next →</button>';
       $('#wnext').addEventListener('click', newQ);
       $('#wnext').focus();
       drawQS();
@@ -840,7 +804,7 @@
   /* Cheat sheet                                                            */
   /* ===================================================================== */
   function cheatPage() {
-    document.title = 'Pseudocode Cheat Sheet — Turner’s Teach Tree';
+    document.title = 'Cheat Sheet — Turner’s Teach Tree';
     const a = esc(TT.settings.assign);
     const v = n => '<span class="t-var">' + n + '</span>';
     const k = w => '<span class="t-ctl">' + w + '</span>';
@@ -864,30 +828,27 @@
       [[true, true], [true, false], [false, true], [false, false]].map(([x, y]) => '<tr><td>' + TT.valHTML(x) + '</td><td>' + TT.valHTML(y) + '</td><td>' + TT.valHTML(f(x, y)) + '</td></tr>').join('') + '</tbody></table>';
 
     app.innerHTML =
-      '<div class="page-head"><a class="back-link" href="#/">← All scenarios</a><h1>Pseudocode Cheat Sheet</h1>' +
-      '<p class="lead">Everything the scenarios use, on one page. Change the notation with the ⚙ button.</p></div>' +
+      '<div class="page-head"><a class="back-link" href="#/">← All scenarios</a><h1>Cheat Sheet</h1></div>' +
       '<div class="cheat">' +
       '<section class="panel"><h2>Variables and assignment</h2>' +
-      '<p>A variable is a named box in memory. <code>' + o(TT.settings.assign) + '</code> stores a value in it.</p>' +
       '<pre class="code-ex">' + v('lives') + ' ' + o(a) + ' ' + n(3) + '\n' + v('name') + ' ' + o(a) + ' <span class="t-str">"Ada"</span>\n' +
-      v('isReady') + ' ' + o(a) + ' ' + T + '\n' + v('lives') + ' ' + o(a) + ' ' + v('lives') + ' ' + o('+') + ' ' + n(1) + '   <span class="t-note">// lives is now 4</span></pre></section>' +
+      v('isReady') + ' ' + o(a) + ' ' + T + '\n' + v('lives') + ' ' + o(a) + ' ' + v('lives') + ' ' + o('+') + ' ' + n(1) + '</pre></section>' +
       '<section class="panel"><h2>Math</h2>' +
       '<table class="ref"><tr><td><code>' + o('+') + '</code></td><td>add</td><td><code>' + v('total') + ' ' + o(a) + ' ' + v('price') + ' ' + o('+') + ' ' + v('tax') + '</code></td></tr>' +
       '<tr><td><code>' + o('-') + '</code></td><td>subtract</td><td><code>' + v('health') + ' ' + o(a) + ' ' + v('health') + ' ' + o('-') + ' ' + n(10) + '</code></td></tr>' +
       '<tr><td><code>' + o('*') + '</code></td><td>multiply</td><td><code>' + v('area') + ' ' + o(a) + ' ' + v('width') + ' ' + o('*') + ' ' + v('height') + '</code></td></tr>' +
       '<tr><td><code>' + o('/') + '</code></td><td>divide</td><td><code>' + v('half') + ' ' + o(a) + ' ' + v('total') + ' ' + o('/') + ' ' + n(2) + '</code></td></tr></table>' +
-      '<p class="muted small">The right side is always worked out first, then stored.</p></section>' +
-      '<section class="panel"><h2>Comparisons</h2><p>A comparison asks a question. The answer is always ' + T + ' or ' + F + '.</p>' +
+      '</section>' +
+      '<section class="panel"><h2>Comparisons</h2>' +
       '<table class="ref"><thead><tr><th>symbol</th><th>means</th><th>example</th><th>result</th></tr></thead><tbody>' + cmpRows + '</tbody></table></section>' +
       '<section class="panel"><h2>AND, OR, NOT</h2>' +
       '<div class="tt-row">' + truth('A AND B', (x, y) => x && y) + truth('A OR B', (x, y) => x || y) +
       '<table class="tt small"><thead><tr><th>A</th><th>NOT A</th></tr></thead><tbody><tr><td>' + T + '</td><td>' + F + '</td></tr><tr><td>' + F + '</td><td>' + T + '</td></tr></tbody></table></div>' +
-      '<p><b>' + l('AND') + '</b>: both must be TRUE. <b>' + l('OR') + '</b>: at least one must be TRUE. <b>' + l('NOT') + '</b>: flips the value.</p></section>' +
+      '</section>' +
       '<section class="panel wide"><h2>IF / ELSE IF / ELSE</h2>' +
-      '<p>The computer checks each condition from the top. The <b>first</b> one that is TRUE runs, and the rest are skipped. ELSE runs only if nothing above was TRUE.</p>' +
       '<div class="side-by-side readonly"><div>' + TT.renderCode(example, 'blocks') + '</div><div>' + TT.renderCode(example, 'pseudo') + '</div></div></section>' +
       '<section class="panel wide"><h2>Order of operations</h2>' +
-      '<p>Brackets first, then math, then comparisons, then ' + l('NOT') + ', then ' + l('AND') + ', then ' + l('OR') + '. When in doubt, add brackets — they make your meaning clear.</p>' +
+      '<p><code>( )</code> → math → comparisons → ' + l('NOT') + ' → ' + l('AND') + ' → ' + l('OR') + '</p>' +
       '<pre class="code-ex">' + k('IF') + ' (' + v('hasKey') + ' ' + l('OR') + ' ' + v('hasMap') + ') ' + l('AND') + ' ' + l('NOT') + ' ' + v('isLocked') + ' ' + k('THEN') + '\n' +
       '    <span class="t-out">OUTPUT</span> <span class="t-str">"Go!"</span>\n' + k('END IF') + '</pre></section>' +
       '</div>';
@@ -902,11 +863,11 @@
     const radio = (name, value, label, cur) => '<label class="radio"><input type="radio" name="' + name + '" value="' + esc(value) + '"' + (cur === value ? ' checked' : '') + '> ' + label + '</label>';
     back.innerHTML = '<div class="modal" role="dialog" aria-modal="true" aria-labelledby="st">' +
       '<h2 id="st">Settings</h2>' +
-      '<fieldset><legend>Assignment is written as</legend>' +
+      '<fieldset><legend>Assignment</legend>' +
       radio('assign', '←', '<code>score ← 10</code>', TT.settings.assign) + radio('assign', '=', '<code>score = 10</code>', TT.settings.assign) + '</fieldset>' +
-      '<fieldset><legend>Comparisons are written as</legend>' +
+      '<fieldset><legend>Comparisons</legend>' +
       radio('cmp', 'math', '<code>= ≠ ≤ ≥</code>', TT.settings.cmp) + radio('cmp', 'code', '<code>== != &lt;= &gt;=</code>', TT.settings.cmp) + '</fieldset>' +
-      '<fieldset><legend>Progress</legend><button type="button" class="btn btn-ghost" id="clear-progress">Clear my challenge progress</button></fieldset>' +
+      '<fieldset><legend>Progress</legend><button type="button" class="btn btn-ghost" id="clear-progress">Reset challenges</button></fieldset>' +
       '<div class="modal-foot"><button type="button" class="btn btn-run" data-close>Done</button></div></div>';
     document.body.appendChild(back);
     const close = () => { back.remove(); document.removeEventListener('keydown', onKey); route(); };
@@ -922,7 +883,7 @@
       if (e.target.closest('#clear-progress')) {
         progress = {};
         store.set('progress', progress);
-        e.target.closest('#clear-progress').textContent = 'Progress cleared';
+        e.target.closest('#clear-progress').textContent = 'Done';
       }
     });
     back.querySelector('input').focus();
