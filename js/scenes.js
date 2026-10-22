@@ -6,8 +6,8 @@
      refs   - named parts of the program (some pictures follow the code's numbers) */
 (function () {
   'use strict';
-  const LL = window.LL;
-  const esc = LL.esc;
+  const TT = window.TT;
+  const esc = TT.esc;
   const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 
   /* ---------- small drawing helpers ---------- */
@@ -494,5 +494,5 @@
     return svg(s);
   };
 
-  LL.scenes = S;
+  TT.scenes = S;
 })();

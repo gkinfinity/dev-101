@@ -1,4 +1,7 @@
-# Logic Lab
+# Turner’s Teach Tree
+
+A *tech tree* unlocks new abilities one branch at a time. This is a *teach
+tree*: every scenario unlocks a new piece of programming.
 
 Interactive pseudocode practice for an intro computer science class. Each
 scenario is a short program — variables, math, comparisons, AND / OR / NOT and

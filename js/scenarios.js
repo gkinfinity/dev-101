@@ -2,7 +2,7 @@
 
    vars:       the memory boxes. role 'input' can be changed by students,
                'calc' and 'output' are only ever set by the program.
-   code(B):    builds the program (see LL.B in engine.js). Parts given a ref
+   code(B):    builds the program (see TT.B in engine.js). Parts given a ref
                name can be checked by the challenges.
    presets:    one-click situations. run: true also runs the program.
    challenges: check(c) gets { before, after, main, refs, crashed } after
@@ -10,9 +10,9 @@
                (0 = IF, 1 = first ELSE IF, ..., 'else', or 'none'). */
 (function () {
   'use strict';
-  const LL = window.LL;
+  const TT = window.TT;
 
-  LL.scenarios = [
+  TT.scenarios = [
     /* 1 ------------------------------------------------------------------ */
     {
       id: 'damage',
@@ -326,5 +326,5 @@
     },
   ];
 
-  LL.scenarios.forEach((s, i) => { s.num = i + 1; s.scene = LL.scenes[s.id]; });
+  TT.scenarios.forEach((s, i) => { s.num = i + 1; s.scene = TT.scenes[s.id]; });
 })();

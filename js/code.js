@@ -3,10 +3,10 @@
    the page listens for changes on the code panel (see app.js). */
 (function () {
   'use strict';
-  const LL = window.LL;
-  const esc = LL.esc;
+  const TT = window.TT;
+  const esc = TT.esc;
 
-  LL.renderCode = function (prog, view) {
+  TT.renderCode = function (prog, view) {
     return view === 'pseudo'
       ? '<div class="pseudo">' + pseudoList(prog.body, 0, false) + '</div>'
       : '<div class="blocks">' + blockList(prog.body, false) + '</div>';
@@ -14,8 +14,8 @@
 
   /* ---------- shared controls ---------- */
   function opSelect(e, cls) {
-    const opts = LL.OPS[e.k].map(o =>
-      '<option value="' + esc(o) + '"' + (o === e.op ? ' selected' : '') + '>' + esc(e.k === 'logic' ? o : LL.sym(o)) + '</option>'
+    const opts = TT.OPS[e.k].map(o =>
+      '<option value="' + esc(o) + '"' + (o === e.op ? ' selected' : '') + '>' + esc(e.k === 'logic' ? o : TT.sym(o)) + '</option>'
     ).join('');
     const kind = e.k === 'logic' ? 'logic' : e.k === 'cmp' ? 'comparison' : 'math';
     return '<select class="op ' + cls + '" data-eid="' + e.eid + '" aria-label="Change the ' + kind + ' operator" title="Click to change">' + opts + '</select>';
@@ -95,8 +95,8 @@
     switch (e.k) {
       case 'var': return '<span class="t-var">' + esc(e.name) + '</span>';
       case 'num': return numInput(e, 'ps-num');
-      case 'bool': return LL.valHTML(e.v);
-      case 'str': return LL.valHTML(e.v);
+      case 'bool': return TT.valHTML(e.v);
+      case 'str': return TT.valHTML(e.v);
       case 'not': return notButton(e, 'ps-not') + ' ' + pparen(e.x, e, false);
       default: {
         const op = e.k === 'logic' ? opSelect(e, 'ps-sel ps-log') : opSelect(e, 'ps-sel');
@@ -108,7 +108,7 @@
     // A switched-off NOT still sits in the line, so keep the brackets it needs.
     const parent = p.k === 'not' ? { k: 'not', on: true } : p;
     const s = pexpr(c);
-    return LL.needParens(c, parent, right) ? '<span class="t-par">(</span>' + s + '<span class="t-par">)</span>' : s;
+    return TT.needParens(c, parent, right) ? '<span class="t-par">(</span>' + s + '<span class="t-par">)</span>' : s;
   }
 
   function line(attrs, ind, content, off) {
@@ -125,7 +125,7 @@
     const note = s.note ? ' <span class="t-note">// ' + esc(s.note) + '</span>' : '';
     if (s.k === 'set') {
       return line('data-sid="' + s.id + '"', ind,
-        opt + '<span class="t-var">' + esc(s.name) + '</span> <span class="t-op">' + esc(LL.settings.assign) + '</span> ' + pexpr(s.expr) + note, isOff);
+        opt + '<span class="t-var">' + esc(s.name) + '</span> <span class="t-op">' + esc(TT.settings.assign) + '</span> ' + pexpr(s.expr) + note, isOff);
     }
     if (s.k === 'out') {
       return line('data-sid="' + s.id + '"', ind,
@@ -147,14 +147,14 @@
   }
 
   /* Plain pseudocode (no controls) for text such as prediction choices. */
-  LL.condText = function (s, branch) {
+  TT.condText = function (s, branch) {
     if (branch === 'else') return 'ELSE';
     if (branch === 'none') return 'Nothing — no part runs';
-    return (branch ? 'ELSE IF ' : 'IF ') + LL.exprText(s.branches[branch].cond);
+    return (branch ? 'ELSE IF ' : 'IF ') + TT.exprText(s.branches[branch].cond);
   };
-  LL.condHTML = function (s, branch) {
+  TT.condHTML = function (s, branch) {
     if (branch === 'else') return '<span class="t-ctl">ELSE</span>';
     if (branch === 'none') return 'Nothing — no part of the IF runs';
-    return '<span class="t-ctl">' + (branch ? 'ELSE IF' : 'IF') + '</span> ' + LL.exprHTML(LL.strip(s.branches[branch].cond));
+    return '<span class="t-ctl">' + (branch ? 'ELSE IF' : 'IF') + '</span> ' + TT.exprHTML(TT.strip(s.branches[branch].cond));
   };
 })();

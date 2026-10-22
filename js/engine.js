@@ -1,13 +1,13 @@
-/* Logic Lab engine
+/* Turner’s Teach Tree engine
    A program is a list of plain objects (statements and expressions). The engine
    can print it as text, and run it one step at a time so a page can show the
    computer "thinking": every condition is shown being worked out, piece by piece. */
 (function () {
   'use strict';
-  const LL = (window.LL = window.LL || {});
+  const TT = (window.TT = window.TT || {});
 
   /* How code is written on screen. The app loads saved choices over these. */
-  LL.settings = {
+  TT.settings = {
     assign: '←',      // '←' or '='
     cmp: 'math',      // 'math' writes = ≠ ≤ ≥ ; 'code' writes == != <= >=
     view: 'blocks',   // 'blocks' or 'pseudo'
@@ -15,7 +15,7 @@
     predict: false,
   };
 
-  LL.OPS = {
+  TT.OPS = {
     math: ['+', '-', '*', '/'],
     cmp: ['<', '>', '<=', '>=', '==', '!='],
     logic: ['AND', 'OR'],
@@ -24,7 +24,7 @@
   /* ---------- building programs ---------- */
   const wrap = x => (typeof x === 'number' ? { k: 'num', v: x } : typeof x === 'boolean' ? { k: 'bool', v: x } : x);
 
-  LL.B = {
+  TT.B = {
     num: (v, ref) => ({ k: 'num', v, ref }),
     bool: v => ({ k: 'bool', v }),
     str: v => ({ k: 'str', v }),
@@ -42,7 +42,7 @@
   };
 
   /* Give every statement and expression an id, and collect named parts. */
-  LL.prepare = function (body) {
+  TT.prepare = function (body) {
     let ns = 0, ne = 0, main = null, firstIf = null;
     const refs = {}, nodes = {}, stmts = {};
     const ex = e => {
@@ -70,10 +70,10 @@
 
   /* ---------- values ---------- */
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  LL.esc = esc;
+  TT.esc = esc;
 
   const fmtNum = x => (Number.isInteger(x) ? String(x) : String(Math.round(x * 100) / 100));
-  LL.fmt = function (val) {
+  TT.fmt = function (val) {
     if (val === true) return 'TRUE';
     if (val === false) return 'FALSE';
     if (typeof val === 'number') return fmtNum(val);
@@ -81,8 +81,8 @@
     return String(val);
   };
 
-  LL.sym = function (op) {
-    const code = LL.settings.cmp === 'code';
+  TT.sym = function (op) {
+    const code = TT.settings.cmp === 'code';
     switch (op) {
       case '==': return code ? '==' : '=';
       case '!=': return code ? '!=' : '≠';
@@ -96,10 +96,10 @@
     '<': 'less than', '>': 'greater than', '<=': 'less than or equal to',
     '>=': 'greater than or equal to', '==': 'equal to', '!=': 'not equal to',
   };
-  LL.opWords = op => OP_WORDS[op] || op;
+  TT.opWords = op => OP_WORDS[op] || op;
 
   class Crash extends Error {}
-  LL.Crash = Crash;
+  TT.Crash = Crash;
 
   function apply(e, a, b) {
     switch (e.k) {
@@ -122,7 +122,7 @@
           case '-': r = a - b; break;
           case '*': r = a * b; break;
           case '/':
-            if (b === 0) throw new Crash('Division by zero! A computer cannot divide ' + LL.fmt(a) + ' by 0.');
+            if (b === 0) throw new Crash('Division by zero! A computer cannot divide ' + TT.fmt(a) + ' by 0.');
             r = a / b; break;
         }
         return Math.round(r * 1e6) / 1e6;
@@ -140,7 +140,7 @@
     if (e.a) return { k: e.k, op: e.op, a: strip(e.a), b: strip(e.b) };
     return e;
   }
-  LL.strip = strip;
+  TT.strip = strip;
 
   function subst(e, vars) {
     switch (e.k) {
@@ -159,7 +159,7 @@
     return { k: e.k, op: e.op, a: reduce(e.a), b: reduce(e.b) };
   }
 
-  LL.evaluate = function (expr, vars) {
+  TT.evaluate = function (expr, vars) {
     let cur = subst(strip(expr), vars);
     while (cur.k !== 'lit') cur = reduce(cur);
     return cur.value;
@@ -167,12 +167,12 @@
 
   // Returns every line of working: the expression, then with values filled in,
   // then each simplification down to one value.
-  LL.solve = function (expr, vars) {
+  TT.solve = function (expr, vars) {
     const clean = strip(expr);
-    const lines = [LL.exprHTML(clean)];
+    const lines = [TT.exprHTML(clean)];
     let cur = subst(clean, vars);
     const push = () => {
-      const h = LL.exprHTML(cur);
+      const h = TT.exprHTML(cur);
       if (h !== lines[lines.length - 1]) lines.push(h);
     };
     push();
@@ -191,7 +191,7 @@
     }
   }
 
-  LL.needParens = function (child, parent, right) {
+  TT.needParens = function (child, parent, right) {
     if (child.k === 'not' && !child.on) child = child.x;
     const cp = prec(child), pp = prec(parent);
     if (cp === 9) return false;
@@ -202,39 +202,39 @@
     return false;
   };
 
-  LL.valHTML = function (v) {
+  TT.valHTML = function (v) {
     if (v === true) return '<span class="t-bool t-true">TRUE</span>';
     if (v === false) return '<span class="t-bool t-false">FALSE</span>';
     if (typeof v === 'number') return '<span class="t-num">' + fmtNum(v) + '</span>';
-    return '<span class="t-str">' + esc(LL.fmt(v)) + '</span>';
+    return '<span class="t-str">' + esc(TT.fmt(v)) + '</span>';
   };
 
   const opHTML = e => (e.k === 'logic'
     ? '<span class="t-log">' + e.op + '</span>'
-    : '<span class="t-op">' + esc(LL.sym(e.op)) + '</span>');
+    : '<span class="t-op">' + esc(TT.sym(e.op)) + '</span>');
 
-  LL.exprHTML = function h(e) {
+  TT.exprHTML = function h(e) {
     switch (e.k) {
-      case 'lit': return LL.valHTML(e.value);
-      case 'num': case 'bool': case 'str': return LL.valHTML(e.v);
+      case 'lit': return TT.valHTML(e.value);
+      case 'num': case 'bool': case 'str': return TT.valHTML(e.v);
       case 'var': return '<span class="t-var">' + esc(e.name) + '</span>';
       case 'not': return '<span class="t-log">NOT</span> ' + paren(e.x, e, false);
       default: return paren(e.a, e, false) + ' ' + opHTML(e) + ' ' + paren(e.b, e, true);
     }
   };
   function paren(c, p, right) {
-    const s = LL.exprHTML(c);
-    return LL.needParens(c, p, right) ? '<span class="t-par">(</span>' + s + '<span class="t-par">)</span>' : s;
+    const s = TT.exprHTML(c);
+    return TT.needParens(c, p, right) ? '<span class="t-par">(</span>' + s + '<span class="t-par">)</span>' : s;
   }
 
-  LL.plain = html => html.replace(/<[^>]+>/g, '')
+  TT.plain = html => html.replace(/<[^>]+>/g, '')
     .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&amp;/g, '&');
 
-  LL.exprText = e => LL.plain(LL.exprHTML(strip(e)));
+  TT.exprText = e => TT.plain(TT.exprHTML(strip(e)));
 
   /* ---------- running a program ---------- */
   // A generator: each yield is one thing the computer does.
-  LL.run = function* (prog, vars, ctx) {
+  TT.run = function* (prog, vars, ctx) {
     ctx.taken = {};
     ctx.outputs = [];
     try {
@@ -254,7 +254,7 @@
       try {
         if (s.k === 'set') {
           const before = vars[s.name];
-          const r = LL.solve(s.expr, vars);
+          const r = TT.solve(s.expr, vars);
           vars[s.name] = r.value;
           yield { kind: 'set', sid: s.id, stmt: s, name: s.name, before, after: r.value, lines: r.lines };
         } else if (s.k === 'out') {
@@ -263,7 +263,7 @@
         } else if (s.k === 'if') {
           let taken = null;
           for (let i = 0; i < s.branches.length; i++) {
-            const r = LL.solve(s.branches[i].cond, vars);
+            const r = TT.solve(s.branches[i].cond, vars);
             yield { kind: 'cond', sid: s.id, stmt: s, branch: i, lines: r.lines, value: r.value };
             if (r.value === true) {
               taken = i;
@@ -292,13 +292,13 @@
   }
 
   /* Every statement inside a list, nested ones included. */
-  LL.allStatements = function (list, out) {
+  TT.allStatements = function (list, out) {
     out = out || [];
     (list || []).forEach(s => {
       out.push(s);
       if (s.k === 'if') {
-        s.branches.forEach(b => LL.allStatements(b.body, out));
-        LL.allStatements(s.else, out);
+        s.branches.forEach(b => TT.allStatements(b.body, out));
+        TT.allStatements(s.else, out);
       }
     });
     return out;
