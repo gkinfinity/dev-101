@@ -13,6 +13,7 @@
     view: 'blocks',   // 'blocks' or 'pseudo'
     speed: 'normal',
     predict: false,
+    parenConds: true, // (distance ≤ reach) AND (NOT isBedrock): brackets around each condition
   };
 
   TT.OPS = {
@@ -167,12 +168,14 @@
 
   // Returns every line of working: the expression, then with values filled in,
   // then each simplification down to one value.
-  TT.solve = function (expr, vars) {
+  // isCond: the expression is a whole IF condition, so it gets its brackets.
+  TT.solve = function (expr, vars, isCond) {
+    const show = e => (isCond ? TT.condTop(e, TT.exprHTML(e)) : TT.exprHTML(e));
     const clean = strip(expr);
-    const lines = [TT.exprHTML(clean)];
+    const lines = [show(clean)];
     let cur = subst(clean, vars);
     const push = () => {
-      const h = TT.exprHTML(cur);
+      const h = show(cur);
       if (h !== lines[lines.length - 1]) lines.push(h);
     };
     push();
@@ -191,7 +194,14 @@
     }
   }
 
+  // A single condition: a comparison, a NOT, or a TRUE/FALSE variable.
+  const condPart = e => e.k === 'cmp' || e.k === 'not' || e.k === 'var';
+  const bracket = html => '<span class="t-par">(</span>' + html + '<span class="t-par">)</span>';
+  // Brackets around a whole IF condition when it is a single condition.
+  TT.condTop = (e, html) => (TT.settings.parenConds && condPart(e) ? bracket(html) : html);
+
   TT.needParens = function (child, parent, right) {
+    if (TT.settings.parenConds && parent.k === 'logic' && condPart(child)) return true;
     if (child.k === 'not' && !child.on) child = child.x;
     const cp = prec(child), pp = prec(parent);
     if (cp === 9) return false;
@@ -263,7 +273,7 @@
         } else if (s.k === 'if') {
           let taken = null;
           for (let i = 0; i < s.branches.length; i++) {
-            const r = TT.solve(s.branches[i].cond, vars);
+            const r = TT.solve(s.branches[i].cond, vars, true);
             yield { kind: 'cond', sid: s.id, stmt: s, branch: i, lines: r.lines, value: r.value };
             if (r.value === true) {
               taken = i;

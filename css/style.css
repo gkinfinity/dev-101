@@ -487,6 +487,11 @@ select.op option { color: #d7ffe0; background: #031009; }
 .readonly select, .readonly input, .readonly button { pointer-events: none; }
 
 /* ---------- the Dig Site ---------- */
+.p-questions { margin-top: 16px; display: grid; gap: 14px; }
+.p-questions .panel-head { margin-bottom: 0; }
+.question { display: grid; gap: 6px; font-size: 16px; color: var(--ink); }
+.question textarea { width: 100%; min-height: 64px; resize: vertical; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line-2); background: #000; color: var(--ink); font: 16px/1.5 var(--sans); }
+.question textarea:focus { outline: none; border-color: var(--neon); box-shadow: 0 0 0 1px var(--neon), 0 0 14px rgba(0, 255, 106, .25); }
 .dig-cols { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 .p-world { padding: 10px; }
 .world { position: relative; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: #000; border: 1px solid var(--line-2); box-shadow: 0 0 30px rgba(0, 255, 106, .15); user-select: none; }

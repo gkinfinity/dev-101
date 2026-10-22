@@ -121,7 +121,7 @@
       title: 'The Dig Site',
       concepts: ['Every frame', 'Variables', 'Math', 'AND', 'NOT', 'ELSE IF'],
       vars: [
-        { name: 'reach', type: 'num', init: 4.5, min: 1, max: 12, step: 0.5, slider: true, unit: 'meters' },
+        { name: 'reach', type: 'num', init: 4.5, min: 1, max: 12, step: 0.01, slider: true, unit: 'meters' },
         { name: 'digTime', type: 'num', init: 1, min: 0, max: 5, step: 0.1, slider: true, unit: 'seconds' },
         { name: 'distance', type: 'num', init: 0, role: 'calc', unit: 'meters' },
         { name: 'isBedrock', type: 'bool', init: false, role: 'calc' },
@@ -142,6 +142,11 @@
         { text: 'Mine a block more than 8 meters away.', check: e => e.distance > 8 },
         { text: 'Mine a block with digTime 0.', check: e => e.vals.digTime === 0 },
         { text: 'Change AND to OR, then mine bedrock.', check: e => e.refs.logic.op === 'OR' && e.block === 'bedrock' },
+      ],
+      questions: [
+        'What does distance mean in this case?',
+        'What kind of data type is isBedrock?',
+        'What is digTime?',
       ],
     },
   ];

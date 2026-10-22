@@ -303,7 +303,7 @@
       return li;
     }
     function traceStep(st) {
-      if (st.kind === 'endif') return;
+      if (st.kind === 'endif' || st.kind === 'none') return;
       const h = TT.stepHTML(st, st.kind === 'done' ? '✓' : ++stepNo);
       addTrace(h.html, h.cls);
     }
@@ -857,8 +857,8 @@
       '<div class="side-by-side readonly"><div>' + TT.renderCode(example, 'blocks') + '</div><div>' + TT.renderCode(example, 'pseudo') + '</div></div></section>' +
       '<section class="panel wide"><h2>Order of operations</h2>' +
       '<p><code>( )</code> → math → comparisons → ' + l('NOT') + ' → ' + l('AND') + ' → ' + l('OR') + '</p>' +
-      '<pre class="code-ex">' + k('IF') + ' (' + v('hasKey') + ' ' + l('OR') + ' ' + v('hasMap') + ') ' + l('AND') + ' ' + l('NOT') + ' ' + v('isLocked') + ' ' + k('THEN') + '\n' +
-      '    <span class="t-out">OUTPUT</span> <span class="t-str">"Go!"</span>\n' + k('END IF') + '</pre></section>' +
+      '<pre class="code-ex">' + k('IF') + ' ((' + v('hasKey') + ') ' + l('OR') + ' (' + v('hasMap') + ')) ' + l('AND') + ' (' + l('NOT') + ' ' + v('isLocked') + ')\n' +
+      '    <span class="t-out">OUTPUT</span> <span class="t-str">"Go!"</span></pre></section>' +
       '</div>';
   }
 

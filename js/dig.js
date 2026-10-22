@@ -336,6 +336,9 @@
       '<section class="panel p-trace"><div class="panel-head"><h2>Step by step</h2></div>' +
       '<ol class="trace live" id="trace"></ol></section>' +
       '</div></div>' +
+      (sc.questions ? '<section class="panel p-questions"><div class="panel-head"><h2>Questions</h2></div>' +
+        sc.questions.map((q, i) => '<label class="question"><span>' + (i + 1) + '. ' + esc(q) + '</span>' +
+          '<textarea rows="2" data-q="' + i + '"></textarea></label>').join('') + '</section>' : '') +
       (ui.solo ? '' : '<nav class="pager">' + (ui.prev ? '<a class="btn btn-ghost" href="#/' + ui.prev.id + '">← ' + esc(ui.prev.title) + '</a>' : '<span></span>') +
       '<a class="btn btn-ghost" href="#/">All scenarios</a></nav>');
 
@@ -409,7 +412,7 @@
         const role = vd.role || 'input';
         if (vd.slider) {
           return '<div class="box box-slider"><div class="box-top"><span class="box-name">' + vd.name + '</span><span class="vb vb-n" id="sv-' + vd.name + '">' +
-            TT.fmt(S.vals[vd.name]) + '</span><span class="unit">' + (vd.unit || '') + '</span></div>' +
+            sliderText(vd, S.vals[vd.name]) + '</span><span class="unit">' + (vd.unit || '') + '</span></div>' +
             '<input type="range" min="' + vd.min + '" max="' + vd.max + '" step="' + vd.step + '" value="' + S.vals[vd.name] + '" data-var="' + vd.name + '" aria-label="' + vd.name + '">' +
             '</div>';
         }
@@ -417,6 +420,10 @@
           '<div class="mem-val" id="mv-' + vd.name + '"></div></div>';
       }).join('');
       updateMem();
+    }
+    function sliderText(vd, v) {
+      const places = vd.step < 0.1 ? 2 : vd.step < 1 ? 1 : 0;
+      return v.toFixed(places);
     }
     function badgeHTML(v) {
       if (v === true) return '<span class="vb vb-t">TRUE</span>';
@@ -439,7 +446,7 @@
       if (!t.dataset.var) return;
       const n = parseFloat(t.value);
       S.vals[t.dataset.var] = n;
-      $('sv-' + t.dataset.var).textContent = TT.fmt(n);
+      $('sv-' + t.dataset.var).textContent = sliderText(varDef(t.dataset.var), n);
     });
     memEl.addEventListener('change', () => canvas.focus({ preventScroll: true }));
 
@@ -471,6 +478,13 @@
       outEl.className = 'screen-out' + (kind ? ' ' + kind : '') + (text ? ' has' : '');
       outEl.innerHTML = '<span class="out-label">OUTPUT</span><span class="out-text">' + (text ? esc(text) : '<i>nothing yet</i>') + '</span>';
     }
+
+    // Answers stay in this browser so a refresh does not lose them.
+    document.querySelectorAll('[data-q]').forEach(box => {
+      const key = 'teach-answers:' + sc.id + ':' + box.dataset.q;
+      try { box.value = localStorage.getItem(key) || ''; } catch (err) { /* private window */ }
+      box.addEventListener('input', () => { try { localStorage.setItem(key, box.value); } catch (err) { /* private window */ } });
+    });
 
     drawCode();
     drawMem();
@@ -741,12 +755,12 @@
         updateMem();
         if (lastSteps.length) {
           markCode(lastSteps);
-          const html = lastSteps.filter(s => !s.silent && s.kind !== 'done')
+          const html = lastSteps.filter(s => !s.silent && s.kind !== 'done' && s.kind !== 'none')
             .map((s, i) => { const h = TT.stepHTML(s, i + 1); return '<li class="tr ' + h.cls + '">' + h.html + '</li>'; }).join('');
           if (html !== previewLines) { traceEl.innerHTML = html; previewLines = html; }
         } else if (hit && S.prog.main) {
           markCode([]);
-          const r = TT.solve(S.prog.main.branches[0].cond, V);
+          const r = TT.solve(S.prog.main.branches[0].cond, V, true);
           const sig = r.lines.join('');
           if (sig !== previewLines) {
             previewLines = sig;

@@ -134,15 +134,14 @@
     let h = '';
     s.branches.forEach((b, i) => {
       h += line('data-of="' + s.id + '" data-head="' + i + '"', ind,
-        (i ? '' : opt) + '<span class="t-ctl">' + (i ? 'ELSE IF' : 'IF') + '</span> ' + pexpr(b.cond) +
-        ' <span class="t-ctl">THEN</span>' + (i ? '' : note) + '<span class="res"></span>', isOff);
+        (i ? '' : opt) + '<span class="t-ctl">' + (i ? 'ELSE IF' : 'IF') + '</span> ' + TT.condTop(b.cond, pexpr(b.cond)) +
+        (i ? '' : note) + '<span class="res"></span>', isOff);
       h += pseudoList(b.body, ind + 1, isOff);
     });
     if (s.else) {
       h += line('data-of="' + s.id + '" data-head="else"', ind, '<span class="t-ctl">ELSE</span><span class="res"></span>', isOff);
       h += pseudoList(s.else, ind + 1, isOff);
     }
-    h += line('data-of="' + s.id + '" data-foot="1"', ind, '<span class="t-ctl">END IF</span><span class="res"></span>', isOff);
     return h;
   }
 
@@ -152,7 +151,7 @@
   function stmtText(s) {
     if (s.k === 'set') return assignHTML(s.name) + TT.exprHTML(TT.strip(s.expr));
     if (s.k === 'out') return '<span class="t-out">OUTPUT</span> <span class="t-str">"' + esc(s.text) + '"</span>';
-    return TT.condHTML(s, 0) + ' <span class="t-ctl">THEN</span> …';
+    return TT.condHTML(s, 0) + ' …';
   }
   TT.stepHTML = function (st, n) {
     const num = '<span class="tr-n">' + n + '</span>';
@@ -174,7 +173,7 @@
       case 'else':
         return { cls: 'k-true', html: line('<span class="t-ctl">ELSE</span>') };
       case 'none':
-        return { cls: 'k-false', html: line('<span class="t-ctl">END IF</span>') };
+        return { cls: '', html: '' };  // nothing was TRUE and there is no ELSE: nothing to show
       case 'out':
         return { cls: 'k-out', html: line(stmtText(st.stmt)) };
       case 'off':
@@ -196,6 +195,7 @@
   TT.condHTML = function (s, branch) {
     if (branch === 'else') return '<span class="t-ctl">ELSE</span>';
     if (branch === 'none') return 'Nothing';
-    return '<span class="t-ctl">' + (branch ? 'ELSE IF' : 'IF') + '</span> ' + TT.exprHTML(TT.strip(s.branches[branch].cond));
+    const cond = TT.strip(s.branches[branch].cond);
+    return '<span class="t-ctl">' + (branch ? 'ELSE IF' : 'IF') + '</span> ' + TT.condTop(cond, TT.exprHTML(cond));
   };
 })();
