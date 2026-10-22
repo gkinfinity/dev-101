@@ -19,9 +19,10 @@
       try { localStorage.setItem('gamedev101:' + key, JSON.stringify(value)); } catch (e) { /* private window */ }
     },
   };
-  // No settings button on the page, so stored notation choices are ignored.
+  // Notation is fixed (← and ≤ ≥ ≠); older saved choices are ignored.
   const stored = store.get('settings', {});
-  if (!$('#settings-btn')) { delete stored.assign; delete stored.cmp; }
+  delete stored.assign;
+  delete stored.cmp;
   Object.assign(TT.settings, stored);
   const saveSettings = () => store.set('settings', TT.settings);
   let progress = store.get('progress', {});
@@ -868,36 +869,26 @@
   function openSettings() {
     const back = document.createElement('div');
     back.className = 'modal-back';
-    const radio = (name, value, label, cur) => '<label class="radio"><input type="radio" name="' + name + '" value="' + esc(value) + '"' + (cur === value ? ' checked' : '') + '> ' + label + '</label>';
     back.innerHTML = '<div class="modal" role="dialog" aria-modal="true" aria-labelledby="st">' +
       '<h2 id="st">Settings</h2>' +
-      '<fieldset><legend>Assignment</legend>' +
-      radio('assign', '←', '<code>score ← 10</code>', TT.settings.assign) + radio('assign', '=', '<code>score = 10</code>', TT.settings.assign) + '</fieldset>' +
-      '<fieldset><legend>Comparisons</legend>' +
-      radio('cmp', 'math', '<code>= ≠ ≤ ≥</code>', TT.settings.cmp) + radio('cmp', 'code', '<code>== != &lt;= &gt;=</code>', TT.settings.cmp) + '</fieldset>' +
-      '<fieldset><legend>Progress</legend><button type="button" class="btn btn-ghost" id="clear-progress">Reset challenges</button></fieldset>' +
+      '<fieldset><legend>Challenges</legend><button type="button" class="btn btn-ghost" id="clear-progress">Reset challenges</button></fieldset>' +
       '<div class="modal-foot"><button type="button" class="btn btn-run" data-close>Done</button></div></div>';
     document.body.appendChild(back);
     const close = () => { back.remove(); document.removeEventListener('keydown', onKey); route(); };
     const onKey = e => { if (e.key === 'Escape') close(); };
     document.addEventListener('keydown', onKey);
-    back.addEventListener('change', e => {
-      if (e.target.name === 'assign') TT.settings.assign = e.target.value;
-      if (e.target.name === 'cmp') TT.settings.cmp = e.target.value;
-      saveSettings();
-    });
     back.addEventListener('click', e => {
       if (e.target === back || e.target.closest('[data-close]')) close();
       if (e.target.closest('#clear-progress')) {
         progress = {};
         store.set('progress', progress);
-        e.target.closest('#clear-progress').textContent = 'Done';
+        e.target.closest('#clear-progress').textContent = 'Challenges reset';
       }
     });
-    back.querySelector('input').focus();
+    back.querySelector('#clear-progress').focus();
   }
 
-  if ($('#settings-btn')) $('#settings-btn').addEventListener('click', openSettings);
+  $('#settings-btn').addEventListener('click', openSettings);
   window.addEventListener('hashchange', route);
   route();
 })();
