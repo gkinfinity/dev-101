@@ -341,8 +341,8 @@
       '<ol class="trace live" id="trace"></ol></section>' +
       '</div></div>' +
       (sc.questions ? '<section class="panel p-questions"><div class="panel-head"><h2>Questions</h2></div>' +
-        sc.questions.map((q, i) => '<label class="question"><span>' + (i + 1) + '. ' + esc(q) + '</span>' +
-          '<textarea rows="2" data-q="' + i + '"></textarea></label>').join('') + '</section>' : '') +
+        sc.questions.map((v, i) => '<label class="question"><span>' + (i + 1) + '. What do you think <span class="t-var">' + esc(v) + '</span> does?</span>' +
+          '<textarea rows="2" data-q="' + esc(v) + '"></textarea></label>').join('') + '</section>' : '') +
       '<section class="panel p-chal p-end"><div class="panel-head"><h2>Challenges</h2><span class="panel-sub" id="chal-count"></span></div><ol class="chal" id="chal"></ol></section>' +
       (ui.solo ? '' : '<nav class="pager">' + (ui.prev ? '<a class="btn btn-ghost" href="#/' + ui.prev.id + '">← ' + esc(ui.prev.title) + '</a>' : '<span></span>') +
       '<a class="btn btn-ghost" href="#/">All scenarios</a></nav>');

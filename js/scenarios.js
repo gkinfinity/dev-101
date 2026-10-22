@@ -134,7 +134,7 @@
           [B.blankLogic(B.maybeNot(B.blankCmp()), B.maybeNot(B.blankVar()), 'logic'), [
             B.iff([[B.maybeNot(B.blankCmp()), [B.out('Block mined!', 'mine')],
               'Mine the block once it has been held long enough']], null),
-          ], 'The block must be close enough AND not be bedrock'],
+          ], 'The block must be close enough AND bedrock cannot be mined'],
           [B.maybeNot(B.blankVar()), [B.out('Bedrock cannot be mined.', 'bedrock')], 'Is the block bedrock?'],
         ], [B.out('Too far away!', 'far')], { main: true }),
       ],
@@ -156,11 +156,8 @@
         { text: 'Mine a block with digTime 0.', check: e => e.vals.digTime === 0 },
         { text: 'Change AND to OR, then mine bedrock.', check: e => e.refs.logic.op === 'OR' && e.block === 'bedrock' },
       ],
-      questions: [
-        'What does distance mean in this case?',
-        'What kind of data type is isBedrock?',
-        'What is digTime?',
-      ],
+      // One question per variable: students describe it, then use that to fill in the blanks.
+      questions: ['reach', 'digTime', 'distance', 'isBedrock', 'holdTime'],
     },
   ];
 
