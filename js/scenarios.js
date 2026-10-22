@@ -146,7 +146,7 @@
           bedrock: 'Check for specific block type',
           timeOk: 'Mine the block once it has been held long enough',
           reachOk: 'The block must be close enough AND bedrock cannot be mined',
-          diamond: 'Diamond from diamond ore, OR a 1/5 bonus on any block',
+          diamond: 'Diamond from diamond ore, OR a 1/5 chance of diamond',
         };
         const mined = [B.out('Block mined!', 'mine')];
         const bedrockMsg = [B.out('Bedrock cannot be mined.', 'bedrock')];
@@ -183,7 +183,7 @@
           { say: 'bedrock too far away', vals: { distance: 7, reach: 4.5, isBedrock: true, isDiamond: false, holdTime: 3, digTime: 1 }, expect: ['Bedrock cannot be mined.'] },
           { say: 'a far block with a long reach', vals: { distance: 6, reach: 8, isBedrock: false, isDiamond: false, holdTime: 2.5, digTime: 2 }, expect: ['Block mined!'] },
         ] },
-        { tip: "Read the comment above the line again, one part at a time. What numbers can RANDOM(1, 5) give, and how often does each one come up?", done: 'Diamond ore always gives a diamond, and any block has a 1 in 5 bonus. Your code is finished!', tests: [
+        { tip: "Read the comment above the line again, one part at a time. What numbers can RANDOM(1, 5) give, and how often does each one come up?", done: 'Diamond ore always gives a diamond, and any block has a 1 in 5 chance of diamond. Your code is finished!', tests: [
           { say: 'dirt in reach held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: false, holdTime: 1.5, digTime: 1 }, expect: ['Block mined!'], diamond: 1 / 5 },
           { say: 'diamond ore in reach held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: true, holdTime: 1.5, digTime: 1 }, expect: ['Block mined!'], diamond: 1 },
           { say: 'diamond ore not held long enough', vals: { distance: 2, reach: 4.5, isBedrock: false, isDiamond: true, holdTime: 0.4, digTime: 1 }, expect: [], diamond: 0 },
@@ -201,7 +201,7 @@
         { step: 3, text: 'Set reach to more than 8, then mine a block more than 8 meters away.', check: e => e.vals.reach > 8 && e.distance > 8 },
         { step: 3, text: 'Bug hunt: change the AND in step 3 to OR, then mine bedrock. Why can you?', check: e => e.refs.logic && e.refs.logic.op === 'OR' && e.block === 'bedrock' },
         { step: 4, text: 'Mine a diamond ore block and get its diamond.', check: e => e.block === 'diamond ore' && e.gem },
-        { step: 4, text: 'Get a bonus diamond from a block that is NOT diamond ore.', check: e => e.gem && !e.vals.isDiamond },
+        { step: 4, text: 'Get a diamond by chance from a block that is NOT diamond ore.', check: e => e.gem && !e.vals.isDiamond },
       ],
       // One question per variable: students describe it, then use that to fill in the blanks.
       questions: ['reach', 'digTime', 'distance', 'isBedrock', 'isDiamond', 'holdTime'],
